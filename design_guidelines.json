@@ -1,0 +1,91 @@
+{
+  "theme_and_archetype": {
+    "theme": "Dark (Primary), supports Light mode",
+    "archetype": "Archetype 4 (Swiss & High-Contrast)",
+    "rationale": "Fits the 'minimalist, highly scannable' requirement. Emphasizes authority, clarity, and function over decoration. Uses sharp edges and high contrast."
+  },
+  "typography": {
+    "rules": "No generic sans-serif for headings (no Inter). Rotate through diverse fonts. Keep tight letter spacing for headings.",
+    "fonts": {
+      "headings": "Cabinet Grotesk",
+      "body": "Satoshi",
+      "data_and_numbers": "JetBrains Mono"
+    }
+  },
+  "colors": {
+    "rules": "Color is function only. Avoid default SaaS blue. 95% monochrome. Never use pure #000000 or #808080, tint neutrally.",
+    "dark_mode": {
+      "background": "hsl(240, 6%, 10%)",
+      "foreground": "hsl(0, 0%, 98%)",
+      "card": "hsl(240, 6%, 10%)",
+      "primary": "hsl(0, 0%, 98%)",
+      "primary_foreground": "hsl(240, 6%, 10%)",
+      "border": "hsl(240, 6%, 18%)",
+      "destructive": "hsl(0, 84%, 60%)",
+      "warning": "hsl(38, 92%, 50%)"
+    },
+    "light_mode": {
+      "background": "hsl(0, 0%, 98%)",
+      "foreground": "hsl(240, 6%, 10%)",
+      "card": "hsl(0, 0%, 100%)",
+      "primary": "hsl(240, 6%, 10%)",
+      "primary_foreground": "hsl(0, 0%, 98%)",
+      "border": "hsl(240, 5%, 84%)",
+      "destructive": "hsl(0, 84%, 60%)",
+      "warning": "hsl(38, 92%, 50%)"
+    }
+  },
+  "layout_and_spacing": {
+    "philosophy": "Control Room Grid Protocol. Dense, functional beauty, scanability.",
+    "container": "Generous spacing. Tailwind scale: p-4, p-6, p-8. Containers with borders MUST have padding to prevent text collision.",
+    "corners": "Sharp edges or minimal rounding (rounded-none or rounded-sm). No large border radius.",
+    "grid": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 for top stats summary."
+  },
+  "surfaces_and_micro_themes": {
+    "login_screen": "Solid flat card centered over the dark texture background image. No glassmorphism.",
+    "dashboard_cards": "Grid Borders (Technical Look). Expose skeleton. Flat background, 1px subtle border, no shadow.",
+    "header": "Solid background with a hard bottom border. No transparent header."
+  },
+  "components": {
+    "strategy": "Shadcn for logic (Dialog, Table, Input, Button), Pure HTML/Tailwind for grid wrappers. Heavily customize Shadcn to remove generic Vercel look.",
+    "inventory_table": "Dense but readable. 1px bottom border per row. Visual flag for qty < 5 (e.g. Destructive color text + warning icon). Use mono font for numbers.",
+    "search_bar": "Minimalist input. Flat, 1px border. Left-aligned icon.",
+    "buttons": "Flat, pure primary color. Hover states MUST explicitly set background and text colors.",
+    "empty_state": "Clear, centered message with a call-to-action to add the first product."
+  },
+  "motion": {
+    "rules": "Minimalist. Micro-interactions only.",
+    "hover_states": "ALWAYS explicitly set text color on hover. Focus states must have higher contrast."
+  },
+  "icons": {
+    "library": "@phosphor-icons/react",
+    "installation": "yarn add @phosphor-icons/react",
+    "usage": "Use dense dashboards friendly icons."
+  },
+  "media": {
+    "login_background": {
+      "url": "https://images.pexels.com/photos/7641148/pexels-photo-7641148.jpeg",
+      "description": "Dark fabric texture showcasing intricate patterns under subdued lighting.",
+      "usage": "Use as a full-screen background for the login page with a heavy dark overlay (e.g. bg-black/80) so the login card is highly readable."
+    }
+  },
+  "accessibility_and_testing": {
+    "testing_attributes": "All interactive and key informational elements MUST include a data-testid attribute (kebab-case, role-based).",
+    "contrast": "Ensure minimum 4.5:1 ratio for text."
+  },
+  "instructions_to_main_agent": [
+    "1. Setup fonts (Cabinet Grotesk, Satoshi, JetBrains Mono) and apply to Tailwind.",
+    "2. Install @phosphor-icons/react.",
+    "3. Apply color palette to index.css and tailwind.config.js.",
+    "4. Build simple login screen utilizing the media URL provided.",
+    "5. Build single-page dashboard or simple sidebar layout.",
+    "6. Implement Dark/Light mode toggle switch.",
+    "7. Implement Quick stats summary (Total Items, Low Stock count, Total Value).",
+    "8. Implement Search bar (filter by name or category).",
+    "9. Implement Inventory Table with visual flags for low stock (qty < 5).",
+    "10. Implement Add product modal/form.",
+    "11. Implement Update stock logic (increment/decrement) directly on table or via modal.",
+    "12. Implement Delete product functionality.",
+    "13. Ensure data persists via MongoDB and the FastAPI backend supports these endpoints."
+  ]
+}
