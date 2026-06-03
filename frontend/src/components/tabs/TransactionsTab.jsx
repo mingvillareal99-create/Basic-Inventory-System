@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { ShoppingCart, ShoppingBag, MagnifyingGlass } from "@phosphor-icons/react";
+import {
+  ShoppingCart, ShoppingBag, MagnifyingGlass, CaretRight, Receipt,
+} from "@phosphor-icons/react";
 import { formatPeso } from "@/lib/format";
+import TransactionDetailsDialog from "@/components/TransactionDetailsDialog";
 
 function formatDate(iso) {
   try {
@@ -14,11 +17,44 @@ function formatDate(iso) {
   } catch { return iso; }
 }
 
+// Group transactions that share user + type + created_at + note (a "cart" / bulk order)
+function groupTransactions(items) {
+  const map = new Map();
+  for (const t of items) {
+    const key = `${t.type}|${t.user_id}|${t.created_at}|${t.note || ""}`;
+    if (!map.has(key)) {
+      map.set(key, {
+        id: t.id, // first child id becomes the group id (stable enough for testid)
+        type: t.type,
+        user_id: t.user_id,
+        user_email: t.user_email,
+        created_at: t.created_at,
+        note: t.note,
+        items: [],
+        total_units: 0,
+        total_amount: 0,
+      });
+    }
+    const g = map.get(key);
+    g.items.push(t);
+    g.total_units += Number(t.quantity) || 0;
+    g.total_amount += Number(t.total) || 0;
+  }
+  // Sort each group's items by product name; sort groups by date desc
+  const groups = Array.from(map.values()).map((g) => ({
+    ...g,
+    items: [...g.items].sort((a, b) => a.product_name.localeCompare(b.product_name)),
+  }));
+  groups.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  return groups;
+}
+
 export default function TransactionsTab() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [detailsGroup, setDetailsGroup] = useState(null);
 
   const load = async () => {
     try {
@@ -33,14 +69,17 @@ export default function TransactionsTab() {
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [filter]);
 
-  const filtered = items.filter((t) => {
+  const groups = useMemo(() => groupTransactions(items), [items]);
+
+  const filteredGroups = useMemo(() => {
     const s = search.trim().toLowerCase();
-    if (!s) return true;
-    return (
-      t.product_name.toLowerCase().includes(s) ||
-      t.user_email.toLowerCase().includes(s)
-    );
-  });
+    if (!s) return groups;
+    return groups.filter((g) => {
+      if (g.user_email.toLowerCase().includes(s)) return true;
+      if (g.note && g.note.toLowerCase().includes(s)) return true;
+      return g.items.some((it) => it.product_name.toLowerCase().includes(s));
+    });
+  }, [groups, search]);
 
   const totalBuy = items.filter((t) => t.type === "buy").reduce((a, t) => a + t.total, 0);
   const totalSell = items.filter((t) => t.type === "sell").reduce((a, t) => a + t.total, 0);
@@ -50,15 +89,16 @@ export default function TransactionsTab() {
       <div>
         <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Transactions</h1>
         <p className="text-sm md:text-base text-muted-foreground mt-1">
-          Every buy and sell is recorded here with who, when, and how much.
+          Each row is one transaction. Click any row to view details or download a receipt.
         </p>
       </div>
 
-      {/* Stat cards */}
+      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div data-testid="tx-stat-count" className="bg-card rounded-xl border border-border card-shadow p-5">
           <p className="text-sm text-muted-foreground">Total transactions</p>
-          <p className="text-2xl md:text-3xl font-semibold tabular mt-1">{items.length}</p>
+          <p className="text-2xl md:text-3xl font-semibold tabular mt-1">{groups.length}</p>
+          <p className="text-xs text-muted-foreground mt-1">{items.length} line item(s)</p>
         </div>
         <div data-testid="tx-stat-buy" className="bg-card rounded-xl border border-border card-shadow p-5">
           <p className="text-sm text-muted-foreground">Money spent (buys)</p>
@@ -76,7 +116,7 @@ export default function TransactionsTab() {
           <MagnifyingGlass size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             data-testid="tx-search"
-            placeholder="Search by product or user"
+            placeholder="Search by product, user, or note"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="h-12 pl-11 text-base"
@@ -102,47 +142,69 @@ export default function TransactionsTab() {
       <div className="bg-card rounded-xl border border-border card-shadow overflow-hidden">
         {loading ? (
           <div className="p-10 text-center text-muted-foreground">Loading…</div>
-        ) : filtered.length === 0 ? (
+        ) : filteredGroups.length === 0 ? (
           <div className="p-12 text-center" data-testid="tx-empty">
+            <div className="h-16 w-16 mx-auto rounded-xl bg-muted flex items-center justify-center mb-4">
+              <Receipt size={28} className="text-muted-foreground" />
+            </div>
             <p className="font-semibold mb-1">No transactions yet</p>
             <p className="text-sm text-muted-foreground">Tap Buy or Sell to record one.</p>
           </div>
         ) : (
-          <div className="divide-y divide-border" data-testid="tx-list">
-            {filtered.map((t) => {
-              const isBuy = t.type === "buy";
+          <ul className="divide-y divide-border" data-testid="tx-list">
+            {filteredGroups.map((g) => {
+              const isBuy = g.type === "buy";
               const Icon = isBuy ? ShoppingCart : ShoppingBag;
+              const ref = g.id.slice(-8).toUpperCase();
+              const headline =
+                g.items.length === 1
+                  ? g.items[0].product_name
+                  : `${g.items[0].product_name} + ${g.items.length - 1} more`;
               return (
-                <div
-                  key={t.id}
-                  data-testid={`tx-row-${t.id}`}
-                  className="flex items-center gap-4 px-5 py-4 hover:bg-muted/30 transition-colors"
-                >
-                  <div className={`h-11 w-11 shrink-0 rounded-lg flex items-center justify-center ${isBuy ? "bg-primary-soft text-primary" : "bg-muted text-muted-foreground"}`}>
-                    <Icon size={20} weight="bold" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{t.product_name}</p>
-                    <p className="text-sm text-muted-foreground truncate">
-                      <span className="capitalize">{t.type}</span>
-                      {" · "}{t.user_email}
-                      {" · "}{formatDate(t.created_at)}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="font-semibold tabular">
-                      {isBuy ? "+" : "−"}{t.quantity}
-                    </p>
-                    <p className="text-sm text-muted-foreground tabular">
-                      {formatPeso(t.total)}
-                    </p>
-                  </div>
-                </div>
+                <li key={g.id}>
+                  <button
+                    type="button"
+                    data-testid={`tx-row-${g.id}`}
+                    onClick={() => setDetailsGroup(g)}
+                    className="w-full flex items-center gap-4 px-5 py-4 hover:bg-muted/40 transition-colors text-left"
+                  >
+                    <div className={`h-11 w-11 shrink-0 rounded-lg flex items-center justify-center ${isBuy ? "bg-primary-soft text-primary" : "bg-muted text-muted-foreground"}`}>
+                      <Icon size={20} weight="bold" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center text-xs font-semibold uppercase px-2 py-0.5 rounded-md ${isBuy ? "bg-primary-soft text-primary" : "bg-muted text-foreground"}`}>
+                          {g.type}
+                        </span>
+                        <span className="text-xs text-muted-foreground tabular">#{ref}</span>
+                      </div>
+                      <p className="font-medium truncate mt-1">{headline}</p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {g.user_email} · {formatDate(g.created_at)}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-semibold tabular text-base" data-testid={`tx-row-total-${g.id}`}>
+                        {formatPeso(g.total_amount)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {g.items.length} item · {g.total_units} unit{g.total_units === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                    <CaretRight size={16} className="text-muted-foreground shrink-0 hidden sm:block" />
+                  </button>
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
       </div>
+
+      <TransactionDetailsDialog
+        open={!!detailsGroup}
+        group={detailsGroup}
+        onOpenChange={(o) => !o && setDetailsGroup(null)}
+      />
     </div>
   );
 }
