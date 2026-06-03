@@ -1,0 +1,38 @@
+{
+  "summary": "Iteration 3 backend + frontend testing complete. Pytest 34/34 passing (added 9 new tests for /api/transactions/bulk covering happy path, atomic validation/rollback, duplicates, invalid type, empty, invalid/non-existent product_id, admin+personnel access, and single endpoint regression). Playwright verified: ₱ peso symbols everywhere (stats, table, dialog, transactions), CartDialog opens via desktop-buy-btn / desktop-sell-btn / per-row buy-{id}, multi-line UI works (cart-line-0/1, add-line, remove-line gating, duplicate-product disable, auto-fill price from product, cart-grand-total in ₱, cart-submit-btn shows ₱ amount, successful bulk sell updated stock and created multiple tx rows). ProductDialog shows 'Unit Price (₱)'.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Dev-mode console", "issues": ["Benign React CRA dev-overlay shows 'ResizeObserver loop completed with undelivered notifications' (Radix UI Select side-effect). Does not impact functionality — submit, stock update, and toast all worked. Will not appear in production build, but could be silenced by adding a window error handler that ignores this specific message if desired."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py /api/transactions/bulk implements correct validate-then-apply pattern: builds `plans` list, checks ObjectId validity, duplicate product_id (via seen_ids set), product existence, and oversell BEFORE any mutation. Stock changes only after all validations pass — verified by atomic-rollback test (line2 oversell leaves both products' stock unchanged).",
+    "BulkTransactionItem and BulkTransactionIn pydantic models correctly enforce quantity>0 and unit_price>=0 at validation layer.",
+    "CartDialog.jsx: option-disabled logic correctly prevents same product twice (usedIds Set, with allowance for current line's own selection). Verified in UI — aria-disabled=true on duplicate option.",
+    "CartDialog auto-fills unit_price from productMap when product chosen — verified (price 25 auto-filled).",
+    "Currency formatter uses Intl.NumberFormat('en-PH') with prepended ₱ symbol. Note: PHP locale natively renders '₱1,234.56' which is what's produced.",
+    "Mongo atomicity caveat: bulk endpoint validates then writes sequentially without a transaction session. In a rare race where two concurrent bulk-sells consume the same stock, the second could still oversell. For an MVP it's fine but consider Mongo session.start_transaction() if scaling.",
+    "Minor: bulk endpoint writes the same `note` to every line; acceptable per spec but worth documenting."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py"
+  ],
+  "success_rate": {"backend": "100% (34/34)", "frontend": "100% of validated flows"},
+  "test_credentials": "Admin: admin@example.com / admin123. Personnel created/destroyed per pytest fixture.",
+  "seed_data_creation": "Pytest fixtures auto-create and clean up TEST_Bulk_* products. UI testing used pre-existing products (Bottled Water, etc.).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration 3 stable. CartDialog replaces TransactionDialog and is the single source for all buy/sell entry points (desktop top-right, per-row, mobile bottom bar). Bulk endpoint at POST /api/transactions/bulk; single POST /api/transactions still supported for backward compat. Currency display is in ₱ (en-PH) — assertions should look for '₱' not '$'. ResizeObserver loop dev-warning is cosmetic only.",
+  "rca_of_issues": "No production bugs. Atomic validation verified — both products' stock remained at 10/2 when line 2 oversold."
+}

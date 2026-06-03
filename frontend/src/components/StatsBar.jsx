@@ -1,7 +1,5 @@
 import { Package, Warning, CurrencyDollar } from "@phosphor-icons/react";
-
-const fmt = (n) =>
-  new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+import { formatPeso } from "@/lib/format";
 
 function StatCard({ index, label, value, sub, icon: Icon, accent, testid }) {
   return (
@@ -55,7 +53,7 @@ export default function StatsBar({ stats }) {
         <StatCard
           index="03"
           label="Inventory Value"
-          value={`$${fmt(stats.value)}`}
+          value={formatPeso(stats.value)}
           sub="quantity × unit price"
           icon={CurrencyDollar}
           testid="stat-value"

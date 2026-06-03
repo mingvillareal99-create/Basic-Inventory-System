@@ -10,7 +10,7 @@ import {
 import InventoryTab from "@/components/tabs/InventoryTab";
 import TransactionsTab from "@/components/tabs/TransactionsTab";
 import AccountsTab from "@/components/tabs/AccountsTab";
-import TransactionDialog from "@/components/TransactionDialog";
+import CartDialog from "@/components/CartDialog";
 
 const TABS = [
   { id: "inventory", label: "Inventory", icon: Storefront, roles: ["admin", "personnel"] },
@@ -164,7 +164,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <TransactionDialog
+      <CartDialog
         open={txDialog.open}
         type={txDialog.type}
         defaultProduct={txDialog.product}

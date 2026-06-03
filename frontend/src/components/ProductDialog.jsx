@@ -123,7 +123,7 @@ export default function ProductDialog({ open, onOpenChange, product, onSave }) {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="p-price" className="font-mono text-[10px] uppercase tracking-[0.2em]">
-                Unit Price ($)
+                Unit Price (₱)
               </Label>
               <Input
                 id="p-price"

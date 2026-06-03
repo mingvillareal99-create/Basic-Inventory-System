@@ -120,6 +120,18 @@ class TransactionIn(BaseModel):
     note: Optional[str] = None
 
 
+class BulkTransactionItem(BaseModel):
+    product_id: str
+    quantity: int = Field(gt=0)
+    unit_price: float = Field(ge=0)
+
+
+class BulkTransactionIn(BaseModel):
+    type: str  # 'buy' or 'sell' — single type per batch
+    items: List[BulkTransactionItem]
+    note: Optional[str] = None
+
+
 # ----------------- Auth Dependency -----------------
 async def get_current_user(request: Request) -> dict:
     token = request.cookies.get("access_token")
@@ -485,6 +497,58 @@ async def create_transaction(payload: TransactionIn, user: dict = Depends(get_cu
     res = await db.transactions.insert_one(tx_doc)
     tx_doc["_id"] = res.inserted_id
     return serialize_transaction(tx_doc)
+
+
+@tx_router.post("/bulk", status_code=201)
+async def create_transactions_bulk(payload: BulkTransactionIn, user: dict = Depends(get_current_user)):
+    if payload.type not in ("buy", "sell"):
+        raise HTTPException(status_code=400, detail="type must be 'buy' or 'sell'")
+    if not payload.items:
+        raise HTTPException(status_code=400, detail="At least one item is required")
+
+    # Validate every line before mutating anything
+    plans = []
+    seen_ids = set()
+    for idx, item in enumerate(payload.items):
+        if not ObjectId.is_valid(item.product_id):
+            raise HTTPException(status_code=400, detail=f"Line {idx + 1}: invalid product id")
+        if item.product_id in seen_ids:
+            raise HTTPException(status_code=400, detail=f"Line {idx + 1}: duplicate product in cart")
+        seen_ids.add(item.product_id)
+        product = await db.products.find_one({"_id": ObjectId(item.product_id)})
+        if not product:
+            raise HTTPException(status_code=404, detail=f"Line {idx + 1}: product not found")
+        delta = item.quantity if payload.type == "buy" else -item.quantity
+        new_qty = int(product["quantity"]) + delta
+        if new_qty < 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Line {idx + 1}: insufficient stock for '{product['name']}' (have {product['quantity']}, need {item.quantity})",
+            )
+        plans.append((product, new_qty, item))
+
+    created = []
+    ts = now_iso()
+    for product, new_qty, item in plans:
+        await db.products.update_one(
+            {"_id": product["_id"]},
+            {"$set": {"quantity": new_qty, "updated_at": ts}},
+        )
+        tx_doc = {
+            "product_id": str(product["_id"]),
+            "product_name": product["name"],
+            "type": payload.type,
+            "quantity": item.quantity,
+            "unit_price": item.unit_price,
+            "user_id": user["_id"],
+            "user_email": user["email"],
+            "note": payload.note,
+            "created_at": ts,
+        }
+        res = await db.transactions.insert_one(tx_doc)
+        tx_doc["_id"] = res.inserted_id
+        created.append(serialize_transaction(tx_doc))
+    return created
 
 
 # ----------------- Mount -----------------

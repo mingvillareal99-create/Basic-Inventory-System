@@ -335,3 +335,126 @@ class TestTransactions:
             "product_id": pid, "type": "exchange", "quantity": 1, "unit_price": 1.0
         })
         assert rt.status_code == 400
+
+
+# ----------------- Iteration 3: Bulk Transactions -----------------
+class TestBulkTransactions:
+    def _mk_product(self, admin_session, qty, price, suffix, cleanup):
+        r = admin_session.post(f"{API}/products", json={
+            "name": f"TEST_Bulk_{suffix}_{uuid.uuid4().hex[:4]}",
+            "quantity": qty, "price": price, "category": "TEST_Bulk"
+        })
+        assert r.status_code == 201, r.text
+        pid = r.json()["id"]
+        cleanup.append(pid)
+        return pid
+
+    def test_bulk_buy_creates_n_transactions_and_updates_stock(
+        self, admin_session, personnel_session, cleanup_products
+    ):
+        p1 = self._mk_product(admin_session, 10, 5.0, "a", cleanup_products)
+        p2 = self._mk_product(admin_session, 4, 8.0, "b", cleanup_products)
+        body = {
+            "type": "buy",
+            "items": [
+                {"product_id": p1, "quantity": 3, "unit_price": 5.0},
+                {"product_id": p2, "quantity": 2, "unit_price": 8.0},
+            ],
+            "note": "TEST_bulk_buy",
+        }
+        r = personnel_session.post(f"{API}/transactions/bulk", json=body)
+        assert r.status_code == 201, r.text
+        data = r.json()
+        assert isinstance(data, list) and len(data) == 2
+        for tx in data:
+            assert tx["type"] == "buy"
+            assert "id" in tx and "product_name" in tx and "total" in tx
+        # Stock updated for both
+        prods = {p["id"]: p for p in admin_session.get(f"{API}/products").json()}
+        assert prods[p1]["quantity"] == 13
+        assert prods[p2]["quantity"] == 6
+
+    def test_bulk_sell_atomic_validation_no_partial_changes(
+        self, admin_session, personnel_session, cleanup_products
+    ):
+        p1 = self._mk_product(admin_session, 10, 5.0, "ok", cleanup_products)
+        p2 = self._mk_product(admin_session, 2, 5.0, "low", cleanup_products)
+        body = {
+            "type": "sell",
+            "items": [
+                {"product_id": p1, "quantity": 4, "unit_price": 6.0},
+                {"product_id": p2, "quantity": 5, "unit_price": 6.0},  # oversell
+            ],
+        }
+        r = personnel_session.post(f"{API}/transactions/bulk", json=body)
+        assert r.status_code == 400, r.text
+        assert "Line 2" in r.json()["detail"]
+        # Stock unchanged for BOTH
+        prods = {p["id"]: p for p in admin_session.get(f"{API}/products").json()}
+        assert prods[p1]["quantity"] == 10
+        assert prods[p2]["quantity"] == 2
+
+    def test_bulk_duplicate_product_rejected(
+        self, admin_session, personnel_session, cleanup_products
+    ):
+        p1 = self._mk_product(admin_session, 10, 5.0, "dup", cleanup_products)
+        body = {
+            "type": "buy",
+            "items": [
+                {"product_id": p1, "quantity": 1, "unit_price": 5.0},
+                {"product_id": p1, "quantity": 2, "unit_price": 5.0},
+            ],
+        }
+        r = personnel_session.post(f"{API}/transactions/bulk", json=body)
+        assert r.status_code == 400
+        assert "duplicate" in r.json()["detail"].lower()
+        # Stock unchanged
+        prods = {p["id"]: p for p in admin_session.get(f"{API}/products").json()}
+        assert prods[p1]["quantity"] == 10
+
+    def test_bulk_invalid_type_rejected(self, personnel_session, admin_session, cleanup_products):
+        p1 = self._mk_product(admin_session, 5, 1.0, "it", cleanup_products)
+        r = personnel_session.post(f"{API}/transactions/bulk", json={
+            "type": "exchange",
+            "items": [{"product_id": p1, "quantity": 1, "unit_price": 1.0}],
+        })
+        assert r.status_code == 400
+
+    def test_bulk_empty_items_rejected(self, personnel_session):
+        r = personnel_session.post(f"{API}/transactions/bulk", json={"type": "buy", "items": []})
+        assert r.status_code == 400
+
+    def test_bulk_invalid_product_id_rejected(self, personnel_session):
+        r = personnel_session.post(f"{API}/transactions/bulk", json={
+            "type": "buy",
+            "items": [{"product_id": "not-an-objectid", "quantity": 1, "unit_price": 1.0}],
+        })
+        assert r.status_code == 400
+
+    def test_bulk_nonexistent_product_id_404(self, personnel_session):
+        # Valid ObjectId format but not in DB
+        fake = "507f1f77bcf86cd799439011"
+        r = personnel_session.post(f"{API}/transactions/bulk", json={
+            "type": "buy",
+            "items": [{"product_id": fake, "quantity": 1, "unit_price": 1.0}],
+        })
+        assert r.status_code == 404
+
+    def test_bulk_works_for_admin(self, admin_session, cleanup_products):
+        p1 = self._mk_product(admin_session, 5, 2.0, "adm", cleanup_products)
+        r = admin_session.post(f"{API}/transactions/bulk", json={
+            "type": "buy",
+            "items": [{"product_id": p1, "quantity": 2, "unit_price": 2.0}],
+        })
+        assert r.status_code == 201
+        assert len(r.json()) == 1
+
+    def test_single_transaction_endpoint_still_works(
+        self, admin_session, personnel_session, cleanup_products
+    ):
+        p1 = self._mk_product(admin_session, 5, 3.0, "single", cleanup_products)
+        r = personnel_session.post(f"{API}/transactions", json={
+            "product_id": p1, "type": "buy", "quantity": 1, "unit_price": 3.0
+        })
+        assert r.status_code == 201
+        assert r.json()["type"] == "buy"

@@ -6,9 +6,7 @@ import {
 import {
   ShoppingCart, ArrowsLeftRight, PencilSimple, Trash, Warning, Archive,
 } from "@phosphor-icons/react";
-
-const fmt = (n) =>
-  new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+import { formatPeso } from "@/lib/format";
 
 export default function InventoryTable({
   products, loading, isAdmin, onBuy, onSell, onDelete, onEdit,
@@ -79,7 +77,7 @@ export default function InventoryTable({
                       {p.quantity}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right font-mono tabular">${fmt(p.price)}</td>
+                  <td className="px-4 py-3 text-right font-mono tabular">{formatPeso(p.price)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
                       <button
@@ -152,7 +150,7 @@ export default function InventoryTable({
                 </div>
               </div>
               <div className="flex items-center justify-between pt-1 border-t border-border">
-                <p className="font-mono tabular text-sm">${fmt(p.price)}</p>
+                <p className="font-mono tabular text-sm">{formatPeso(p.price)}</p>
                 <div className="flex items-center gap-1">
                   <button data-testid={`buy-${p.id}`} onClick={() => onBuy?.(p)} className="h-9 px-3 border border-success/40 text-success hover:bg-success/10 rounded-md text-xs font-semibold">
                     Buy

@@ -3,9 +3,7 @@ import { api, formatApiErrorDetail } from "@/lib/api";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { ShoppingCart, ArrowsLeftRight, MagnifyingGlass } from "@phosphor-icons/react";
-
-const fmt = (n) =>
-  new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+import { formatPeso } from "@/lib/format";
 
 function formatDate(iso) {
   try {
@@ -69,12 +67,12 @@ export default function TransactionsTab() {
         </div>
         <div className="bg-card p-4 space-y-1" data-testid="tx-stat-buy">
           <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Bought / 02</p>
-          <p className="text-2xl md:text-3xl font-mono tabular text-success">${fmt(totalBuy)}</p>
+          <p className="text-2xl md:text-3xl font-mono tabular text-success">{formatPeso(totalBuy)}</p>
           <p className="text-xs text-muted-foreground">spent restocking</p>
         </div>
         <div className="bg-card p-4 space-y-1 col-span-2 md:col-span-1" data-testid="tx-stat-sell">
           <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Sold / 03</p>
-          <p className="text-2xl md:text-3xl font-mono tabular">${fmt(totalSell)}</p>
+          <p className="text-2xl md:text-3xl font-mono tabular">{formatPeso(totalSell)}</p>
           <p className="text-xs text-muted-foreground">revenue</p>
         </div>
       </div>
@@ -136,7 +134,7 @@ export default function TransactionsTab() {
                       {isBuy ? "+" : "−"}{t.quantity}
                     </p>
                     <p className="font-mono tabular text-xs text-muted-foreground">
-                      ${fmt(t.total)}
+                      {formatPeso(t.total)}
                     </p>
                   </div>
                 </div>
