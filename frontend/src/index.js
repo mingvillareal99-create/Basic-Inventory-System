@@ -4,6 +4,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@/index.css";
 import App from "@/App";
 
+// Silence benign ResizeObserver dev-overlay (from Radix Select)
+if (typeof window !== "undefined") {
+  window.addEventListener("error", (e) => {
+    if (typeof e?.message === "string" && e.message.includes("ResizeObserver loop")) {
+      e.stopImmediatePropagation();
+    }
+  });
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
