@@ -249,7 +249,8 @@ async def register(payload: RegisterIn, response: Response):
 @auth_router.post("/login")
 async def login(payload: LoginIn, request: Request, response: Response):
     email = payload.email.lower()
-    ip = request.client.host if request.client else "unknown"
+    xff = request.headers.get("x-forwarded-for", "")
+    ip = xff.split(",")[0].strip() if xff else (request.client.host if request.client else "unknown")
     identifier = f"{ip}:{email}"
     await check_lockout(identifier)
 
