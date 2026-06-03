@@ -65,9 +65,11 @@ export default function InventoryTable({
               <th className="text-right text-xs uppercase tracking-wide font-semibold text-muted-foreground px-5 py-3">
                 Unit price
               </th>
-              <th className="text-right text-xs uppercase tracking-wide font-semibold text-muted-foreground px-5 py-3 w-[260px]">
-                Actions
-              </th>
+              {isAdmin && (
+                <th className="text-right text-xs uppercase tracking-wide font-semibold text-muted-foreground px-5 py-3 w-[140px]">
+                  Actions
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -113,49 +115,47 @@ export default function InventoryTable({
                   <td className="px-5 py-4 text-right tabular font-medium">
                     {formatPeso(p.price)}
                   </td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        data-testid={`buy-${p.id}`}
-                        onClick={() => onBuy?.(p)}
-                        className="h-10 px-3 inline-flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium transition-colors"
-                        title="Buy / restock"
-                      >
-                        <ShoppingCart size={14} weight="bold" />
-                        <span className="hidden md:inline">Buy</span>
-                      </button>
-                      <button
-                        data-testid={`sell-${p.id}`}
-                        onClick={() => onSell?.(p)}
-                        disabled={p.quantity === 0}
-                        className="h-10 px-3 inline-flex items-center gap-1.5 border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
-                        title="Sell"
-                      >
-                        <ShoppingBag size={14} weight="bold" />
-                        <span className="hidden md:inline">Sell</span>
-                      </button>
-                      {isAdmin && (
-                        <>
-                          <button
-                            data-testid={`edit-${p.id}`}
-                            onClick={() => onEdit?.(p)}
-                            className="h-10 w-10 inline-flex items-center justify-center border border-border hover:bg-muted rounded-lg transition-colors"
-                            title="Edit"
-                          >
-                            <PencilSimple size={16} />
-                          </button>
-                          <button
-                            data-testid={`delete-${p.id}`}
-                            onClick={() => setConfirmId(p.id)}
-                            className="h-10 w-10 inline-flex items-center justify-center border border-border text-muted-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive rounded-lg transition-colors"
-                            title="Delete"
-                          >
-                            <Trash size={16} />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
+                  {isAdmin && (
+                    <td className="px-5 py-4">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          data-testid={`buy-${p.id}`}
+                          onClick={() => onBuy?.(p)}
+                          className="h-10 px-3 inline-flex items-center gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-medium transition-colors"
+                          title="Buy / restock"
+                        >
+                          <ShoppingCart size={14} weight="bold" />
+                          <span className="hidden md:inline">Buy</span>
+                        </button>
+                        <button
+                          data-testid={`sell-${p.id}`}
+                          onClick={() => onSell?.(p)}
+                          disabled={p.quantity === 0}
+                          className="h-10 px-3 inline-flex items-center gap-1.5 border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
+                          title="Sell"
+                        >
+                          <ShoppingBag size={14} weight="bold" />
+                          <span className="hidden md:inline">Sell</span>
+                        </button>
+                        <button
+                          data-testid={`edit-${p.id}`}
+                          onClick={() => onEdit?.(p)}
+                          className="h-10 w-10 inline-flex items-center justify-center border border-border hover:bg-muted rounded-lg transition-colors"
+                          title="Edit"
+                        >
+                          <PencilSimple size={16} />
+                        </button>
+                        <button
+                          data-testid={`delete-${p.id}`}
+                          onClick={() => setConfirmId(p.id)}
+                          className="h-10 w-10 inline-flex items-center justify-center border border-border text-muted-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive rounded-lg transition-colors"
+                          title="Delete"
+                        >
+                          <Trash size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -199,41 +199,39 @@ export default function InventoryTable({
 
               <div className="flex items-center justify-between pt-3 border-t border-border">
                 <p className="font-semibold tabular">{formatPeso(p.price)}</p>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    data-testid={`buy-${p.id}`}
-                    onClick={() => onBuy?.(p)}
-                    className="h-10 px-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-semibold"
-                  >
-                    Buy
-                  </button>
-                  <button
-                    data-testid={`sell-${p.id}`}
-                    onClick={() => onSell?.(p)}
-                    disabled={p.quantity === 0}
-                    className="h-10 px-3 border border-border hover:bg-muted disabled:opacity-40 rounded-lg text-sm font-semibold"
-                  >
-                    Sell
-                  </button>
-                  {isAdmin && (
-                    <>
-                      <button
-                        data-testid={`edit-${p.id}`}
-                        onClick={() => onEdit?.(p)}
-                        className="h-10 w-10 inline-flex items-center justify-center border border-border hover:bg-muted rounded-lg"
-                      >
-                        <PencilSimple size={16} />
-                      </button>
-                      <button
-                        data-testid={`delete-${p.id}`}
-                        onClick={() => setConfirmId(p.id)}
-                        className="h-10 w-10 inline-flex items-center justify-center border border-border text-muted-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive rounded-lg"
-                      >
-                        <Trash size={16} />
-                      </button>
-                    </>
-                  )}
-                </div>
+                {isAdmin && (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      data-testid={`buy-${p.id}`}
+                      onClick={() => onBuy?.(p)}
+                      className="h-10 px-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-sm font-semibold"
+                    >
+                      Buy
+                    </button>
+                    <button
+                      data-testid={`sell-${p.id}`}
+                      onClick={() => onSell?.(p)}
+                      disabled={p.quantity === 0}
+                      className="h-10 px-3 border border-border hover:bg-muted disabled:opacity-40 rounded-lg text-sm font-semibold"
+                    >
+                      Sell
+                    </button>
+                    <button
+                      data-testid={`edit-${p.id}`}
+                      onClick={() => onEdit?.(p)}
+                      className="h-10 w-10 inline-flex items-center justify-center border border-border hover:bg-muted rounded-lg"
+                    >
+                      <PencilSimple size={16} />
+                    </button>
+                    <button
+                      data-testid={`delete-${p.id}`}
+                      onClick={() => setConfirmId(p.id)}
+                      className="h-10 w-10 inline-flex items-center justify-center border border-border text-muted-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive rounded-lg"
+                    >
+                      <Trash size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           );
