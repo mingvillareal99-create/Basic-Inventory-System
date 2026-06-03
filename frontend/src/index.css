@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
-@import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800&f[]=satoshi@400,500,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -24,10 +23,11 @@
         --destructive: 0 84% 60%;
         --destructive-foreground: 0 0% 98%;
         --warning: 38 92% 50%;
+        --success: 142 71% 45%;
         --border: 240 5% 84%;
         --input: 240 5% 84%;
         --ring: 240 6% 10%;
-        --radius: 0.125rem;
+        --radius: 0.375rem;
     }
     .dark {
         --background: 240 6% 10%;
@@ -47,6 +47,7 @@
         --destructive: 0 72% 51%;
         --destructive-foreground: 0 0% 98%;
         --warning: 38 92% 50%;
+        --success: 142 71% 45%;
         --border: 240 6% 18%;
         --input: 240 6% 18%;
         --ring: 0 0% 83%;
@@ -59,12 +60,13 @@
     }
     html, body {
         @apply bg-background text-foreground;
-        font-family: 'Satoshi', system-ui, sans-serif;
-        font-feature-settings: 'ss01', 'cv01';
+        font-family: 'DM Sans', system-ui, sans-serif;
+        font-feature-settings: 'ss01';
     }
     h1, h2, h3, h4, h5, h6 {
-        font-family: 'Cabinet Grotesk', system-ui, sans-serif;
+        font-family: 'DM Sans', system-ui, sans-serif;
         letter-spacing: -0.02em;
+        font-weight: 600;
     }
     .font-mono, code, .tabular {
         font-family: 'JetBrains Mono', monospace;
@@ -73,23 +75,15 @@
 }
 
 @layer utilities {
-    .text-warning {
-        color: hsl(var(--warning));
-    }
-    .bg-warning {
-        background-color: hsl(var(--warning));
-    }
-    .border-warning {
-        border-color: hsl(var(--warning));
-    }
+    .text-warning { color: hsl(var(--warning)); }
+    .bg-warning  { background-color: hsl(var(--warning)); }
+    .border-warning { border-color: hsl(var(--warning)); }
+    .text-success { color: hsl(var(--success)); }
+    .bg-success { background-color: hsl(var(--success)); }
+    .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 }
 
-::selection {
-    background: hsl(var(--foreground));
-    color: hsl(var(--background));
-}
-
-/* Subtle scrollbar */
+::selection { background: hsl(var(--foreground)); color: hsl(var(--background)); }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: hsl(var(--background)); }
 ::-webkit-scrollbar-thumb { background: hsl(var(--border)); }

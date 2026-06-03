@@ -30,25 +30,15 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async (email, password, name) => {
-    try {
-      const { data } = await api.post("/auth/register", { email, password, name });
-      setUser(data);
-      return { ok: true };
-    } catch (e) {
-      return { ok: false, error: formatApiErrorDetail(e.response?.data?.detail) || e.message };
-    }
-  };
-
   const logout = async () => {
-    try {
-      await api.post("/auth/logout");
-    } catch (_) {}
+    try { await api.post("/auth/logout"); } catch (_) {}
     setUser(false);
   };
 
+  const isAdmin = user && typeof user === "object" && user.role === "admin";
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, refresh: checkSession }}>
+    <AuthContext.Provider value={{ user, login, logout, refresh: checkSession, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );
