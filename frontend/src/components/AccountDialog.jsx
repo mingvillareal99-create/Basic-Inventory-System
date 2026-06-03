@@ -28,9 +28,9 @@ export default function AccountDialog({ open, onOpenChange, user, onSave }) {
   const submit = (e) => {
     e.preventDefault();
     const errs = {};
-    if (!editing && !form.email.includes("@")) errs.email = "Valid email required";
-    if (!editing && form.password.length < 6) errs.password = "Min 6 characters";
-    if (editing && form.password && form.password.length < 6) errs.password = "Min 6 characters";
+    if (!editing && !form.email.includes("@")) errs.email = "Enter a valid email address";
+    if (!editing && form.password.length < 6) errs.password = "Use at least 6 characters";
+    if (editing && form.password && form.password.length < 6) errs.password = "Use at least 6 characters";
     setErrors(errs);
     if (Object.keys(errs).length) return;
 
@@ -52,22 +52,19 @@ export default function AccountDialog({ open, onOpenChange, user, onSave }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent data-testid="account-dialog" className="max-w-md">
         <DialogHeader>
-          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-            {editing ? "Edit account" : "New account"}
-          </p>
-          <DialogTitle className="text-2xl">
-            {editing ? "Update access" : "Add a teammate"}
+          <DialogTitle className="text-xl">
+            {editing ? "Edit account" : "Add a new account"}
           </DialogTitle>
           <DialogDescription>
             {editing
-              ? "Change name, role, or reset their password."
-              : "Create a new login. Personnel can buy and sell. Admins can do anything."}
+              ? "Update name, role, or reset their password."
+              : "Create a sign-in for a team member."}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={submit} className="space-y-4 py-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="u-email" className="font-mono text-[10px] uppercase tracking-[0.2em]">Email</Label>
+          <div className="space-y-2">
+            <Label htmlFor="u-email">Email address</Label>
             <Input
               id="u-email"
               data-testid="user-email-input"
@@ -78,11 +75,11 @@ export default function AccountDialog({ open, onOpenChange, user, onSave }) {
               className="h-11"
               placeholder="alex@company.com"
             />
-            {errors.email && <p className="text-xs text-destructive font-mono">{errors.email}</p>}
+            {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="u-name" className="font-mono text-[10px] uppercase tracking-[0.2em]">Name</Label>
+          <div className="space-y-2">
+            <Label htmlFor="u-name">Full name</Label>
             <Input
               id="u-name"
               data-testid="user-name-input"
@@ -93,22 +90,26 @@ export default function AccountDialog({ open, onOpenChange, user, onSave }) {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="u-role" className="font-mono text-[10px] uppercase tracking-[0.2em]">Role</Label>
+          <div className="space-y-2">
+            <Label htmlFor="u-role">Role</Label>
             <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
               <SelectTrigger data-testid="user-role-select" id="u-role" className="h-11">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="personnel" data-testid="role-option-personnel">Personnel</SelectItem>
-                <SelectItem value="admin" data-testid="role-option-admin">Admin</SelectItem>
+                <SelectItem value="personnel" data-testid="role-option-personnel">
+                  Personnel (can buy and sell)
+                </SelectItem>
+                <SelectItem value="admin" data-testid="role-option-admin">
+                  Admin (full access)
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="u-password" className="font-mono text-[10px] uppercase tracking-[0.2em]">
-              {editing ? "Reset password (optional)" : "Password"}
+          <div className="space-y-2">
+            <Label htmlFor="u-password">
+              {editing ? "New password (optional)" : "Password"}
             </Label>
             <Input
               id="u-password"
@@ -117,16 +118,16 @@ export default function AccountDialog({ open, onOpenChange, user, onSave }) {
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               className="h-11"
-              placeholder={editing ? "Leave empty to keep current" : "min 6 characters"}
+              placeholder={editing ? "Leave empty to keep current password" : "At least 6 characters"}
             />
-            {errors.password && <p className="text-xs text-destructive font-mono">{errors.password}</p>}
+            {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
           </div>
 
           <DialogFooter className="pt-2 gap-2">
             <Button type="button" variant="outline" data-testid="cancel-user-btn" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" data-testid="save-user-btn">
+            <Button type="submit" data-testid="save-user-btn" className="bg-primary hover:bg-primary/90">
               {editing ? "Save changes" : "Create account"}
             </Button>
           </DialogFooter>

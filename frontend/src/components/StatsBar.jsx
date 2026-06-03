@@ -1,25 +1,21 @@
-import { Package, Warning, CurrencyDollar } from "@phosphor-icons/react";
+import { Package, Warning, CurrencyCircleDollar } from "@phosphor-icons/react";
 import { formatPeso } from "@/lib/format";
 
-function StatCard({ index, label, value, sub, icon: Icon, accent, testid }) {
+function StatCard({ label, value, sub, icon: Icon, iconClass, valueClass, testid }) {
   return (
     <div
       data-testid={testid}
-      className="group border border-border bg-card p-6 flex flex-col justify-between min-h-[140px] transition-colors hover:bg-muted/40"
+      className="bg-card rounded-xl border border-border card-shadow p-5 flex items-start gap-4"
     >
-      <div className="flex items-center justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-          {index} / {label}
-        </span>
-        <Icon size={16} className={accent || "text-muted-foreground"} />
+      <div className={`h-11 w-11 rounded-lg flex items-center justify-center shrink-0 ${iconClass || "bg-muted text-muted-foreground"}`}>
+        <Icon size={20} weight="bold" />
       </div>
-      <div className="space-y-1">
-        <p className="font-mono text-4xl tracking-tight">{value}</p>
-        {sub && (
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            {sub}
-          </p>
-        )}
+      <div className="min-w-0 flex-1">
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className={`text-2xl md:text-3xl font-semibold mt-1 tabular ${valueClass || ""}`}>
+          {value}
+        </p>
+        {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
       </div>
     </div>
   );
@@ -27,38 +23,32 @@ function StatCard({ index, label, value, sub, icon: Icon, accent, testid }) {
 
 export default function StatsBar({ stats }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 border-l border-t border-border">
-      <div className="border-r border-b border-border -ml-px -mt-px">
-        <StatCard
-          index="01"
-          label="Total Products"
-          value={stats.total}
-          sub="unique SKUs tracked"
-          icon={Package}
-          testid="stat-total"
-        />
-      </div>
-      <div className="border-r border-b border-border -mt-px">
-        <StatCard
-          index="02"
-          label="Low Stock"
-          value={stats.low}
-          sub="below 5 units"
-          icon={Warning}
-          accent={stats.low > 0 ? "text-warning" : "text-muted-foreground"}
-          testid="stat-low"
-        />
-      </div>
-      <div className="border-r border-b border-border -mt-px">
-        <StatCard
-          index="03"
-          label="Inventory Value"
-          value={formatPeso(stats.value)}
-          sub="quantity × unit price"
-          icon={CurrencyDollar}
-          testid="stat-value"
-        />
-      </div>
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <StatCard
+        testid="stat-total"
+        label="Total products"
+        value={stats.total}
+        sub="Unique items tracked"
+        icon={Package}
+        iconClass="bg-primary-soft text-primary"
+      />
+      <StatCard
+        testid="stat-low"
+        label="Low stock"
+        value={stats.low}
+        sub="Items below 5 units"
+        icon={Warning}
+        iconClass={stats.low > 0 ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground"}
+        valueClass={stats.low > 0 ? "text-warning" : ""}
+      />
+      <StatCard
+        testid="stat-value"
+        label="Inventory value"
+        value={formatPeso(stats.value)}
+        sub="Quantity × unit price"
+        icon={CurrencyCircleDollar}
+        iconClass="bg-primary-soft text-primary"
+      />
     </div>
   );
 }

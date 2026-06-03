@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { toast, Toaster } from "sonner";
 import {
-  Sun, Moon, SignOut, Package, ShoppingCart, ArrowsLeftRight,
-  Users, Storefront,
+  Sun, Moon, SignOut, Package, ShoppingCart, ShoppingBag,
+  ArrowsLeftRight, Users, Storefront,
 } from "@phosphor-icons/react";
 import InventoryTab from "@/components/tabs/InventoryTab";
 import TransactionsTab from "@/components/tabs/TransactionsTab";
@@ -28,10 +28,7 @@ export default function Dashboard() {
 
   const [txDialog, setTxDialog] = useState({ open: false, type: "buy", product: null });
 
-  const visibleTabs = useMemo(
-    () => TABS.filter((t) => t.roles.includes(user?.role)),
-    [user]
-  );
+  const visibleTabs = TABS.filter((t) => t.roles.includes(user?.role));
 
   const loadProducts = useCallback(async () => {
     try {
@@ -47,42 +44,36 @@ export default function Dashboard() {
 
   useEffect(() => { loadProducts(); }, [loadProducts]);
 
-  const onTransactionComplete = (tx) => {
-    // refresh product list to reflect new stock
-    loadProducts();
-    return tx;
-  };
+  const onTransactionComplete = () => loadProducts();
 
   return (
-    <div className="min-h-screen bg-background text-foreground" data-testid="dashboard-page">
+    <div className="min-h-screen bg-muted/30 text-foreground" data-testid="dashboard-page">
       <Toaster position="top-right" theme={theme} richColors />
 
       {/* Header */}
-      <header className="border-b border-border bg-background sticky top-0 z-30">
-        <div className="max-w-[1400px] mx-auto px-4 md:px-10 h-16 flex items-center justify-between">
+      <header className="border-b border-border bg-card sticky top-0 z-30">
+        <div className="max-w-[1280px] mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 border border-border flex items-center justify-center rounded-md">
-              <Package size={18} weight="duotone" />
+            <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center">
+              <Package size={20} weight="fill" />
             </div>
-            <div className="leading-tight">
-              <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-                Stockroom
-              </p>
-              <p className="text-sm font-semibold">Inventory Control</p>
+            <div>
+              <p className="text-base font-semibold leading-tight">Stockroom</p>
+              <p className="text-xs text-muted-foreground leading-tight">Inventory dashboard</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <div className="hidden md:flex flex-col text-right leading-tight pr-2">
-              <span className="text-xs font-medium" data-testid="header-user-email">{user?.email}</span>
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground" data-testid="header-user-role">
+              <span className="text-sm font-medium" data-testid="header-user-email">{user?.email}</span>
+              <span className="text-xs text-muted-foreground capitalize" data-testid="header-user-role">
                 {user?.role}
               </span>
             </div>
             <button
               data-testid="theme-toggle-btn"
               onClick={toggle}
-              className="h-10 w-10 inline-flex items-center justify-center border border-border hover:bg-muted transition-colors rounded-md"
+              className="h-10 w-10 inline-flex items-center justify-center border border-border hover:bg-muted transition-colors rounded-lg"
               aria-label="Toggle theme"
             >
               {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
@@ -90,15 +81,15 @@ export default function Dashboard() {
             <button
               data-testid="logout-btn"
               onClick={logout}
-              className="h-10 px-3 inline-flex items-center gap-2 border border-border hover:bg-muted transition-colors text-xs font-medium rounded-md"
+              className="h-10 px-3 inline-flex items-center gap-2 border border-border hover:bg-muted transition-colors text-sm font-medium rounded-lg"
             >
-              <SignOut size={16} /><span className="hidden sm:inline">Logout</span>
+              <SignOut size={16} /><span className="hidden sm:inline">Sign out</span>
             </button>
           </div>
         </div>
 
         {/* Tab bar */}
-        <div className="max-w-[1400px] mx-auto px-4 md:px-10">
+        <div className="max-w-[1280px] mx-auto px-4 md:px-8">
           <nav className="flex gap-1 overflow-x-auto -mb-px">
             {visibleTabs.map((t) => {
               const Icon = t.icon;
@@ -108,13 +99,13 @@ export default function Dashboard() {
                   key={t.id}
                   data-testid={`tab-${t.id}`}
                   onClick={() => setTab(t.id)}
-                  className={`px-4 py-3 flex items-center gap-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  className={`px-4 py-3.5 flex items-center gap-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                     active
-                      ? "border-foreground text-foreground"
+                      ? "border-primary text-primary"
                       : "border-transparent text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <Icon size={16} weight={active ? "fill" : "regular"} />
+                  <Icon size={18} weight={active ? "fill" : "regular"} />
                   {t.label}
                 </button>
               );
@@ -124,7 +115,7 @@ export default function Dashboard() {
       </header>
 
       {/* Main */}
-      <main className="max-w-[1400px] mx-auto px-4 md:px-10 py-6 md:py-10 pb-32 md:pb-10">
+      <main className="max-w-[1280px] mx-auto px-4 md:px-8 py-6 md:py-10 pb-32 md:pb-10">
         {tab === "inventory" && (
           <InventoryTab
             products={products}
@@ -142,24 +133,24 @@ export default function Dashboard() {
       {/* Mobile floating buy/sell action bar */}
       <div
         data-testid="mobile-action-bar"
-        className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur safe-bottom"
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-card/95 backdrop-blur safe-bottom"
       >
         <div className="px-4 py-3 flex gap-3">
           <button
             data-testid="mobile-buy-btn"
             onClick={() => setTxDialog({ open: true, type: "buy", product: null })}
-            className="flex-1 h-14 inline-flex items-center justify-center gap-2 bg-success/90 hover:bg-success text-white font-semibold rounded-lg shadow-sm transition-colors"
+            className="flex-1 h-14 inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl card-shadow transition-colors"
           >
             <ShoppingCart size={20} weight="bold" />
-            BUY
+            Buy
           </button>
           <button
             data-testid="mobile-sell-btn"
             onClick={() => setTxDialog({ open: true, type: "sell", product: null })}
-            className="flex-1 h-14 inline-flex items-center justify-center gap-2 bg-foreground text-background hover:bg-foreground/90 font-semibold rounded-lg shadow-sm transition-colors"
+            className="flex-1 h-14 inline-flex items-center justify-center gap-2 bg-foreground text-background hover:bg-foreground/90 font-semibold rounded-xl card-shadow transition-colors"
           >
-            <ArrowsLeftRight size={20} weight="bold" />
-            SELL
+            <ShoppingBag size={20} weight="bold" />
+            Sell
           </button>
         </div>
       </div>

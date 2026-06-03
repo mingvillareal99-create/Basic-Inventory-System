@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import StatsBar from "@/components/StatsBar";
 import InventoryTable from "@/components/InventoryTable";
 import ProductDialog from "@/components/ProductDialog";
-import { MagnifyingGlass, Plus, ShoppingCart, ArrowsLeftRight } from "@phosphor-icons/react";
+import { MagnifyingGlass, Plus, ShoppingCart, ShoppingBag } from "@phosphor-icons/react";
 
 export default function InventoryTab({ products, loading, isAdmin, reload, onBuy, onSell }) {
   const [search, setSearch] = useState("");
@@ -58,18 +58,16 @@ export default function InventoryTab({ products, loading, isAdmin, reload, onBuy
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 animate-fade-up">
+      {/* Heading */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-            Overview / {new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })}
-          </p>
-          <h1 className="text-3xl md:text-4xl tracking-tight leading-none font-semibold mt-1">
-            All inventory.
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+            Inventory
           </h1>
-          <p className="text-sm text-muted-foreground max-w-md mt-2">
+          <p className="text-sm md:text-base text-muted-foreground mt-1">
             {isAdmin
-              ? "Search, restock, and prune your catalog. Items below 5 units are flagged."
-              : "Browse products and record buy / sell transactions."}
+              ? "Manage your products and record stock movements."
+              : "Browse products and record buy or sell transactions."}
           </p>
         </div>
 
@@ -78,8 +76,7 @@ export default function InventoryTab({ products, loading, isAdmin, reload, onBuy
           <Button
             data-testid="desktop-buy-btn"
             onClick={() => onBuy?.(null)}
-            variant="outline"
-            className="h-11 gap-2 border-success/40 hover:bg-success/10 text-success"
+            className="h-11 gap-2 bg-primary hover:bg-primary/90"
           >
             <ShoppingCart size={16} weight="bold" /> Buy
           </Button>
@@ -89,48 +86,49 @@ export default function InventoryTab({ products, loading, isAdmin, reload, onBuy
             variant="outline"
             className="h-11 gap-2"
           >
-            <ArrowsLeftRight size={16} weight="bold" /> Sell
+            <ShoppingBag size={16} weight="bold" /> Sell
           </Button>
           {isAdmin && (
             <Button
               data-testid="add-product-btn"
               onClick={() => { setEditing(null); setDialogOpen(true); }}
+              variant="outline"
               className="h-11 px-4 gap-2"
             >
-              <Plus size={14} weight="bold" /> Add product
+              <Plus size={16} weight="bold" /> Add product
             </Button>
           )}
         </div>
       </div>
 
+      {/* Stats */}
+      <StatsBar stats={stats} />
+
       {/* Search + mobile add */}
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <MagnifyingGlass
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            size={18}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
           />
           <Input
             data-testid="search-input"
-            placeholder="Search name or category"
+            placeholder="Search by name or category"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-12 pl-10 text-base"
+            className="h-12 pl-11 text-base"
           />
         </div>
         {isAdmin && (
           <Button
             data-testid="add-product-btn-mobile"
             onClick={() => { setEditing(null); setDialogOpen(true); }}
-            className="h-12 px-4 gap-2 md:hidden"
+            className="h-12 px-4 gap-2 md:hidden bg-primary hover:bg-primary/90"
           >
-            <Plus size={16} weight="bold" /> Add product
+            <Plus size={18} weight="bold" /> Add product
           </Button>
         )}
       </div>
-
-      {/* Stats */}
-      <StatsBar stats={stats} />
 
       {/* Table */}
       <InventoryTable

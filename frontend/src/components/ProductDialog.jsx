@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,9 +31,9 @@ export default function ProductDialog({ open, onOpenChange, product, onSave }) {
     if (!form.name.trim()) errs.name = "Required";
     if (!form.category.trim()) errs.category = "Required";
     if (Number.isNaN(Number(form.quantity)) || Number(form.quantity) < 0)
-      errs.quantity = "Must be ≥ 0";
+      errs.quantity = "Must be 0 or more";
     if (Number.isNaN(Number(form.price)) || Number(form.price) < 0)
-      errs.price = "Must be ≥ 0";
+      errs.price = "Must be 0 or more";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -56,60 +51,48 @@ export default function ProductDialog({ open, onOpenChange, product, onSave }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="rounded-none border-border max-w-md"
-        data-testid="product-dialog"
-      >
+      <DialogContent data-testid="product-dialog" className="max-w-md">
         <DialogHeader>
-          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-            {product ? "Edit / 02" : "New / 01"}
-          </p>
-          <DialogTitle className="font-heading text-2xl">
-            {product ? "Update product" : "Add a product"}
+          <DialogTitle className="text-xl">
+            {product ? "Edit product" : "Add a product"}
           </DialogTitle>
           <DialogDescription>
             {product
-              ? "Adjust details. Saved instantly to MongoDB."
-              : "Catalog a new SKU with starting stock."}
+              ? "Update product details. Changes save instantly."
+              : "Add a new product to your inventory."}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={submit} className="space-y-4 py-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="p-name" className="font-mono text-[10px] uppercase tracking-[0.2em]">
-              Product Name
-            </Label>
+          <div className="space-y-2">
+            <Label htmlFor="p-name">Product name</Label>
             <Input
               id="p-name"
               data-testid="product-name-input"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="e.g. Wireless Mouse"
-              className="rounded-none h-10"
+              className="h-11"
             />
-            {errors.name && <p className="text-xs text-destructive font-mono">{errors.name}</p>}
+            {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="p-category" className="font-mono text-[10px] uppercase tracking-[0.2em]">
-              Category
-            </Label>
+          <div className="space-y-2">
+            <Label htmlFor="p-category">Category</Label>
             <Input
               id="p-category"
               data-testid="product-category-input"
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
               placeholder="e.g. Accessories"
-              className="rounded-none h-10"
+              className="h-11"
             />
-            {errors.category && <p className="text-xs text-destructive font-mono">{errors.category}</p>}
+            {errors.category && <p className="text-xs text-destructive">{errors.category}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="p-qty" className="font-mono text-[10px] uppercase tracking-[0.2em]">
-                Quantity
-              </Label>
+            <div className="space-y-2">
+              <Label htmlFor="p-qty">Quantity in stock</Label>
               <Input
                 id="p-qty"
                 data-testid="product-quantity-input"
@@ -117,14 +100,12 @@ export default function ProductDialog({ open, onOpenChange, product, onSave }) {
                 min="0"
                 value={form.quantity}
                 onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-                className="rounded-none h-10 font-mono"
+                className="h-11 tabular"
               />
-              {errors.quantity && <p className="text-xs text-destructive font-mono">{errors.quantity}</p>}
+              {errors.quantity && <p className="text-xs text-destructive">{errors.quantity}</p>}
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="p-price" className="font-mono text-[10px] uppercase tracking-[0.2em]">
-                Unit Price (₱)
-              </Label>
+            <div className="space-y-2">
+              <Label htmlFor="p-price">Unit price (₱)</Label>
               <Input
                 id="p-price"
                 data-testid="product-price-input"
@@ -133,9 +114,9 @@ export default function ProductDialog({ open, onOpenChange, product, onSave }) {
                 step="0.01"
                 value={form.price}
                 onChange={(e) => setForm({ ...form, price: e.target.value })}
-                className="rounded-none h-10 font-mono"
+                className="h-11 tabular"
               />
-              {errors.price && <p className="text-xs text-destructive font-mono">{errors.price}</p>}
+              {errors.price && <p className="text-xs text-destructive">{errors.price}</p>}
             </div>
           </div>
 
@@ -145,11 +126,10 @@ export default function ProductDialog({ open, onOpenChange, product, onSave }) {
               variant="outline"
               data-testid="cancel-product-btn"
               onClick={() => onOpenChange(false)}
-              className="rounded-none"
             >
               Cancel
             </Button>
-            <Button type="submit" data-testid="save-product-btn" className="rounded-none">
+            <Button type="submit" data-testid="save-product-btn" className="bg-primary hover:bg-primary/90">
               {product ? "Save changes" : "Add product"}
             </Button>
           </DialogFooter>

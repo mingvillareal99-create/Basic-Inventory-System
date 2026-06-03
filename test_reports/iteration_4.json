@@ -1,0 +1,38 @@
+{
+  "summary": "Iteration 4 (UI overhaul: light theme default + QuickBooks green primary) verified end-to-end. Backend pytest regression: 34/34 PASS (auth, brute-force lockout, users RBAC, products CRUD, single + bulk transactions atomic validation). Frontend: login renders new clean card layout; default theme is LIGHT (html.dark=false on first visit); theme-toggle-login and theme-toggle-btn both add/remove 'dark' class on <html> and persist to localStorage.theme; all required data-testids present (login-*, theme-toggle-*, tab-*, stat-*, search-input, desktop-buy/sell-btn, add-product-btn, low-stock-flag-{id}, cart-*, tx-*, account-dialog inputs, role-option-personnel/admin); peso ₱ correctly rendered in stat-value (₱28,740.49), tx-stat-buy (₱6,451.00), cart-grand-total, cart-submit-btn, and ProductDialog price label ('Unit price (₱)'); CartDialog: cart-line-remove-0 disabled when single line, enabled after cart-add-line-btn; AccountDialog role select options visible; delete-user-{id} disabled for self (verified: admin's own id has disabled=true); mobile <768px shows mobile-action-bar with mobile-buy/sell-btn, inventory-cards visible (display:block), inventory-table hidden (display:none), desktop-buy-btn hidden; mobile-buy-btn opens cart-dialog successfully.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Dev-mode overlay (CRA)", "issues": ["Benign 'ResizeObserver loop completed with undelivered notifications' overlay still shown in CRA dev mode (originates from Radix Select). Same as iter-3. Does not affect functionality and won't appear in production build. Could be silenced with a window error handler in index.js if desired."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Default theme correctly switched to 'light' in ThemeContext.jsx — verified: first-visit html has NO 'dark' class.",
+    "Theme persistence verified via localStorage.theme key on both Login (theme-toggle-login) and Dashboard (theme-toggle-btn) — both toggles flip html.classList('dark') and update localStorage atomically.",
+    "InventoryTable.jsx uses Tailwind sm:hidden / hidden sm:block pattern correctly: mobile (<640px) shows data-testid=inventory-cards (display:block) and hides inventory-table; desktop hides cards. Confirmed via computed styles.",
+    "ProductDialog price label correctly reads 'Unit price (₱)' (sentence-case + peso symbol as spec requires).",
+    "CartDialog single-line remove gating correct (cart-line-remove-0.disabled when 1 line, then enabled once cart-add-line-btn pressed).",
+    "AccountsTab self-delete protection works on client side (disabled=true on own row) AND on backend (test_cannot_delete_self pytest).",
+    "Currency formatter consistently outputs ₱ (en-PH) across stat-value, tx-stat-buy/sell, cart-grand-total, cart-submit-btn.",
+    "All required data-testids preserved from iteration 3 — no regression in test selector contract.",
+    "Cosmetic note: CRA dev error overlay surfaces benign ResizeObserver warnings (from Radix Select). Suggest adding `window.addEventListener('error', (e)=>{ if(e.message?.includes('ResizeObserver loop')) e.stopImmediatePropagation(); })` in index.js to keep the dev experience clean — non-blocking."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (34/34)", "frontend": "100% of validated flows"},
+  "test_credentials": "Admin: admin@example.com / admin123 (works). Personnel created/destroyed via pytest fixture.",
+  "seed_data_creation": "No new seed data created. Pytest fixtures auto-create TEST_* products/users with teardown. UI tests used existing seeded products.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration 4 is pure UI refresh — light theme by default, QuickBooks-style green primary, rounded-xl, sentence-case labels, peso ₱ currency unchanged. Backend untouched from iter-3 (bulk transactions endpoint stable). All data-testids preserved. If retesting: remember default theme is LIGHT now — html.classList.contains('dark') === false on first visit. ResizeObserver dev overlay is cosmetic and originates from Radix Select; suppress in script via page.on('pageerror') filter if it interferes with click flows on Accounts tab (it intercepts clicks in CRA dev mode after dialog interactions).",
+  "rca_of_issues": "No production bugs found. One transient flake during the long sequential script: after closing AccountDialog the CRA dev error overlay (ResizeObserver) intercepted the subsequent tab-inventory click, causing inventory-cards visibility check to report false. A clean-session re-run confirmed mobile inventory-cards renders correctly (display:block, classes: 'sm:hidden space-y-3', table display:none). No code change required."
+}

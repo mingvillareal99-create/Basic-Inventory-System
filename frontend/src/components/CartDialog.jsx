@@ -12,10 +12,10 @@ import { api, formatApiErrorDetail } from "@/lib/api";
 import { formatPeso } from "@/lib/format";
 import { toast } from "sonner";
 import {
-  ShoppingCart, ArrowsLeftRight, Plus, Trash, ShoppingBag,
+  ShoppingCart, ShoppingBag, Plus, Trash,
 } from "@phosphor-icons/react";
 
-const emptyLine = () => ({
+const newLine = () => ({
   key: `line-${Math.random().toString(36).slice(2, 9)}`,
   product_id: "",
   quantity: 1,
@@ -26,7 +26,7 @@ export default function CartDialog({
   open, onOpenChange, type = "buy", defaultProduct = null, products = [], onCompleted,
 }) {
   const isBuy = type === "buy";
-  const [lines, setLines] = useState([emptyLine()]);
+  const [lines, setLines] = useState([newLine()]);
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -38,13 +38,13 @@ export default function CartDialog({
     setSubmitting(false);
     if (defaultProduct) {
       setLines([{
-        key: emptyLine().key,
+        ...newLine(),
         product_id: defaultProduct.id,
         quantity: 1,
         unit_price: Number(defaultProduct.price) || 0,
       }]);
     } else {
-      setLines([emptyLine()]);
+      setLines([newLine()]);
     }
   }, [open, defaultProduct]);
 
@@ -54,7 +54,10 @@ export default function CartDialog({
     return m;
   }, [products]);
 
-  const usedIds = useMemo(() => new Set(lines.map((l) => l.product_id).filter(Boolean)), [lines]);
+  const usedIds = useMemo(
+    () => new Set(lines.map((l) => l.product_id).filter(Boolean)),
+    [lines]
+  );
 
   const updateLine = (key, patch) => {
     setLines((prev) =>
@@ -70,8 +73,9 @@ export default function CartDialog({
     );
   };
 
-  const addLine = () => setLines((prev) => [...prev, emptyLine()]);
-  const removeLine = (key) => setLines((prev) => (prev.length === 1 ? prev : prev.filter((l) => l.key !== key)));
+  const addLine = () => setLines((prev) => [...prev, newLine()]);
+  const removeLine = (key) =>
+    setLines((prev) => (prev.length === 1 ? prev : prev.filter((l) => l.key !== key)));
 
   const lineTotals = lines.map((l) => Number(l.quantity || 0) * Number(l.unit_price || 0));
   const grandTotal = lineTotals.reduce((a, b) => a + b, 0);
@@ -82,10 +86,10 @@ export default function CartDialog({
     if (valid.length === 0) return "Add at least one product";
     const ids = new Set();
     for (const [i, l] of valid.entries()) {
-      if (ids.has(l.product_id)) return `Line ${i + 1}: duplicate product`;
+      if (ids.has(l.product_id)) return `Line ${i + 1}: same product added twice`;
       ids.add(l.product_id);
       const qty = parseInt(l.quantity, 10);
-      if (!qty || qty <= 0) return `Line ${i + 1}: quantity must be > 0`;
+      if (!qty || qty <= 0) return `Line ${i + 1}: quantity must be greater than 0`;
       const price = parseFloat(l.unit_price);
       if (Number.isNaN(price) || price < 0) return `Line ${i + 1}: invalid unit price`;
       if (!isBuy) {
@@ -115,7 +119,9 @@ export default function CartDialog({
       const { data } = await api.post("/transactions/bulk", {
         type, items, note: note || null,
       });
-      toast.success(`${isBuy ? "Bought" : "Sold"} ${totalUnits} item${totalUnits === 1 ? "" : "s"} across ${items.length} line${items.length === 1 ? "" : "s"}`);
+      toast.success(
+        `${isBuy ? "Bought" : "Sold"} ${totalUnits} item${totalUnits === 1 ? "" : "s"} across ${items.length} line${items.length === 1 ? "" : "s"}`
+      );
       onCompleted?.(data);
       onOpenChange(false);
     } catch (e2) {
@@ -129,21 +135,17 @@ export default function CartDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent data-testid="cart-dialog" className="max-w-2xl">
         <DialogHeader>
-          <p className={`font-mono text-[10px] uppercase tracking-[0.25em] ${isBuy ? "text-success" : "text-muted-foreground"}`}>
-            {isBuy ? "Buy / restock cart" : "Sell / sales cart"}
-          </p>
-          <DialogTitle className="text-2xl flex items-center gap-2">
-            {isBuy ? <ShoppingCart size={22} weight="fill" /> : <ShoppingBag size={22} weight="fill" />}
+          <DialogTitle className="text-xl flex items-center gap-2">
+            {isBuy ? <ShoppingCart size={22} weight="fill" className="text-primary" /> : <ShoppingBag size={22} weight="fill" />}
             {isBuy ? "Buy items" : "Sell items"}
           </DialogTitle>
           <DialogDescription>
-            Add multiple products in one go. Each line is recorded as a transaction.
+            Add as many products as you need. Each line is saved as its own transaction.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={submit} className="space-y-4 py-2">
-          {/* Lines */}
-          <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1" data-testid="cart-lines">
+          <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1" data-testid="cart-lines">
             {lines.map((l, idx) => {
               const p = productMap[l.product_id];
               const lineTotal = lineTotals[idx];
@@ -152,82 +154,88 @@ export default function CartDialog({
                 <div
                   key={l.key}
                   data-testid={`cart-line-${idx}`}
-                  className="border border-border bg-muted/20 rounded-md p-3 space-y-2"
+                  className="border border-border bg-muted/30 rounded-xl p-4 space-y-3"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-                      Line {String(idx + 1).padStart(2, "0")}
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Item {idx + 1}
                     </span>
                     <button
                       type="button"
                       data-testid={`cart-line-remove-${idx}`}
                       onClick={() => removeLine(l.key)}
                       disabled={lines.length === 1}
-                      className="h-7 w-7 inline-flex items-center justify-center border border-border hover:bg-destructive hover:text-destructive-foreground hover:border-destructive rounded-md disabled:opacity-30 disabled:cursor-not-allowed"
-                      title="Remove line"
+                      className="h-8 w-8 inline-flex items-center justify-center text-muted-foreground hover:bg-destructive hover:text-destructive-foreground rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      title="Remove item"
                     >
-                      <Trash size={12} />
+                      <Trash size={14} />
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-[1fr_90px_120px] gap-2">
-                    <Select
-                      value={l.product_id}
-                      onValueChange={(v) => updateLine(l.key, { product_id: v })}
-                    >
-                      <SelectTrigger data-testid={`cart-product-${idx}`} className="h-10">
-                        <SelectValue placeholder="Choose product" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {products.length === 0 && (
-                          <SelectItem value="__none__" disabled>No products available</SelectItem>
-                        )}
-                        {products.map((prod) => (
-                          <SelectItem
-                            key={prod.id}
-                            value={prod.id}
-                            disabled={usedIds.has(prod.id) && prod.id !== l.product_id}
-                            data-testid={`cart-product-${idx}-option-${prod.id}`}
-                          >
-                            {prod.name} · {prod.category} · {prod.quantity} in stock
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    <Input
-                      data-testid={`cart-qty-${idx}`}
-                      type="number"
-                      min="1"
-                      value={l.quantity}
-                      onChange={(e) => updateLine(l.key, { quantity: e.target.value })}
-                      className="h-10 font-mono"
-                      placeholder="Qty"
-                    />
-                    <Input
-                      data-testid={`cart-price-${idx}`}
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={l.unit_price}
-                      onChange={(e) => updateLine(l.key, { unit_price: e.target.value })}
-                      className="h-10 font-mono"
-                      placeholder="Unit ₱"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_90px_120px] gap-2.5">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Product</Label>
+                      <Select
+                        value={l.product_id}
+                        onValueChange={(v) => updateLine(l.key, { product_id: v })}
+                      >
+                        <SelectTrigger data-testid={`cart-product-${idx}`} className="h-11 bg-card">
+                          <SelectValue placeholder="Choose product" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.length === 0 && (
+                            <SelectItem value="__none__" disabled>No products available</SelectItem>
+                          )}
+                          {products.map((prod) => (
+                            <SelectItem
+                              key={prod.id}
+                              value={prod.id}
+                              disabled={usedIds.has(prod.id) && prod.id !== l.product_id}
+                              data-testid={`cart-product-${idx}-option-${prod.id}`}
+                            >
+                              {prod.name} — {prod.quantity} in stock
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Qty</Label>
+                      <Input
+                        data-testid={`cart-qty-${idx}`}
+                        type="number"
+                        min="1"
+                        value={l.quantity}
+                        onChange={(e) => updateLine(l.key, { quantity: e.target.value })}
+                        className="h-11 tabular bg-card"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Unit price (₱)</Label>
+                      <Input
+                        data-testid={`cart-price-${idx}`}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={l.unit_price}
+                        onChange={(e) => updateLine(l.key, { unit_price: e.target.value })}
+                        className="h-11 tabular bg-card"
+                      />
+                    </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">
                       {p ? (
                         <>
-                          Stock: <span className={`font-mono ${overSell ? "text-destructive font-semibold" : ""}`}>{p.quantity}</span>
-                          {overSell && " · oversell!"}
+                          Available: <span className={`tabular font-medium ${overSell ? "text-destructive" : ""}`}>{p.quantity}</span>
+                          {overSell && " · not enough stock"}
                         </>
                       ) : (
-                        "—"
+                        "Select a product"
                       )}
                     </span>
-                    <span className="font-mono tabular text-sm font-medium" data-testid={`cart-line-total-${idx}`}>
+                    <span className="font-semibold tabular" data-testid={`cart-line-total-${idx}`}>
                       {formatPeso(lineTotal)}
                     </span>
                   </div>
@@ -241,34 +249,37 @@ export default function CartDialog({
             variant="outline"
             data-testid="cart-add-line-btn"
             onClick={addLine}
-            className="w-full h-10 gap-2"
+            className="w-full h-11 gap-2"
           >
-            <Plus size={14} weight="bold" /> Add line
+            <Plus size={16} weight="bold" /> Add another item
           </Button>
 
-          <div className="space-y-1.5">
-            <Label className="font-mono text-[10px] uppercase tracking-[0.2em]">Note (optional)</Label>
+          <div className="space-y-2">
+            <Label htmlFor="cart-note">Note (optional)</Label>
             <Input
+              id="cart-note"
               data-testid="cart-note-input"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="h-10"
+              className="h-11"
               placeholder="Supplier invoice #, customer name, etc."
             />
           </div>
 
-          <div className="flex items-center justify-between bg-muted/40 rounded-md px-3 py-3 border border-border">
-            <div className="space-y-0.5">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Total</p>
-              <p className="text-xs text-muted-foreground">{lines.filter((l) => l.product_id).length} line(s) · {totalUnits} unit(s)</p>
+          <div className="flex items-center justify-between bg-primary-soft rounded-xl px-4 py-3 border border-primary/20">
+            <div>
+              <p className="text-sm text-muted-foreground">Total</p>
+              <p className="text-xs text-muted-foreground">
+                {lines.filter((l) => l.product_id).length} item(s) · {totalUnits} unit(s)
+              </p>
             </div>
-            <span className="font-mono tabular text-2xl font-semibold" data-testid="cart-grand-total">
+            <span className="tabular text-2xl font-semibold text-primary" data-testid="cart-grand-total">
               {formatPeso(grandTotal)}
             </span>
           </div>
 
           {error && (
-            <div data-testid="cart-error" className="text-xs text-destructive border border-destructive/40 px-3 py-2 font-mono rounded-md">
+            <div data-testid="cart-error" className="text-sm text-destructive bg-destructive/10 border border-destructive/20 px-3 py-2 rounded-lg">
               {error}
             </div>
           )}
@@ -281,13 +292,9 @@ export default function CartDialog({
               type="submit"
               data-testid="cart-submit-btn"
               disabled={submitting}
-              className={isBuy ? "bg-success hover:bg-success/90 text-white" : ""}
+              className="bg-primary hover:bg-primary/90"
             >
-              {submitting
-                ? "Saving…"
-                : isBuy
-                ? `Confirm purchase · ${formatPeso(grandTotal)}`
-                : `Confirm sale · ${formatPeso(grandTotal)}`}
+              {submitting ? "Saving…" : isBuy ? `Confirm buy · ${formatPeso(grandTotal)}` : `Confirm sale · ${formatPeso(grandTotal)}`}
             </Button>
           </DialogFooter>
         </form>

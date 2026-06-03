@@ -37,10 +37,10 @@ export default function AccountsTab({ currentUser }) {
     try {
       if (editing) {
         await api.patch(`/users/${editing.id}`, payload);
-        toast.success("User updated");
+        toast.success("Account updated");
       } else {
         await api.post("/users", payload);
-        toast.success("User created");
+        toast.success("Account created");
       }
       setDialogOpen(false);
       setEditing(null);
@@ -55,7 +55,7 @@ export default function AccountsTab({ currentUser }) {
     setConfirmDelete(null);
     try {
       await api.delete(`/users/${id}`);
-      toast.success("User deleted");
+      toast.success("Account deleted");
       load();
     } catch (e) {
       toast.error(formatApiErrorDetail(e.response?.data?.detail) || "Failed");
@@ -63,69 +63,71 @@ export default function AccountsTab({ currentUser }) {
   };
 
   return (
-    <div className="space-y-6 animate-fade-up" data-testid="accounts-tab">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+    <div className="space-y-6" data-testid="accounts-tab">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-            Team / Access
-          </p>
-          <h1 className="text-3xl md:text-4xl tracking-tight font-semibold mt-1">
-            Accounts.
-          </h1>
-          <p className="text-sm text-muted-foreground mt-2 max-w-md">
-            Manage who can log in and what they can do. Personnel can buy and sell. Admins can do everything.
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Accounts</h1>
+          <p className="text-sm md:text-base text-muted-foreground mt-1 max-w-xl">
+            Add and manage who can sign in. Personnel can buy and sell. Admins can do anything.
           </p>
         </div>
         <Button
           data-testid="add-user-btn"
           onClick={() => { setEditing(null); setDialogOpen(true); }}
-          className="h-11 gap-2"
+          className="h-11 gap-2 bg-primary hover:bg-primary/90"
         >
-          <Plus size={14} weight="bold" /> Add account
+          <Plus size={16} weight="bold" /> Add account
         </Button>
       </div>
 
-      <div className="border border-border rounded-md overflow-hidden bg-card">
+      <div className="bg-card rounded-xl border border-border card-shadow overflow-hidden">
         {loading ? (
-          <div className="p-10 text-center text-muted-foreground text-sm">Loading…</div>
+          <div className="p-10 text-center text-muted-foreground">Loading…</div>
         ) : users.length === 0 ? (
-          <div className="p-10 text-center" data-testid="users-empty">
-            <p className="font-semibold mb-1">No accounts yet.</p>
+          <div className="p-12 text-center" data-testid="users-empty">
+            <p className="font-semibold mb-1">No accounts yet</p>
           </div>
         ) : (
           <div className="divide-y divide-border" data-testid="users-list">
             {users.map((u) => {
-              const isAdmin = u.role === "admin";
+              const isAdminUser = u.role === "admin";
               const isSelf = u.id === currentUser?.id;
               return (
-                <div key={u.id} data-testid={`user-row-${u.id}`} className="flex items-center gap-4 px-4 py-3 hover:bg-muted/30 transition-colors">
-                  <div className={`h-10 w-10 shrink-0 rounded-md flex items-center justify-center ${isAdmin ? "bg-foreground/10" : "bg-muted"}`}>
-                    {isAdmin ? <ShieldStar size={18} weight="fill" /> : <User size={18} />}
+                <div
+                  key={u.id}
+                  data-testid={`user-row-${u.id}`}
+                  className="flex items-center gap-4 px-5 py-4 hover:bg-muted/30 transition-colors"
+                >
+                  <div className={`h-11 w-11 shrink-0 rounded-lg flex items-center justify-center ${isAdminUser ? "bg-primary-soft text-primary" : "bg-muted text-muted-foreground"}`}>
+                    {isAdminUser ? <ShieldStar size={20} weight="fill" /> : <User size={20} />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{u.name || u.email}{isSelf && <span className="ml-2 text-xs text-muted-foreground">(you)</span>}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {u.email} · <span className="font-mono uppercase">{u.role}</span>
-                      {u.created_at && ` · added ${formatDate(u.created_at)}`}
+                    <p className="font-medium truncate">
+                      {u.name || u.email}
+                      {isSelf && <span className="ml-2 text-xs text-muted-foreground font-normal">(you)</span>}
+                    </p>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {u.email} · <span className="capitalize">{u.role}</span>
+                      {u.created_at && ` · Added ${formatDate(u.created_at)}`}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       data-testid={`edit-user-${u.id}`}
                       onClick={() => { setEditing(u); setDialogOpen(true); }}
-                      className="h-9 w-9 inline-flex items-center justify-center border border-border hover:bg-muted rounded-md"
+                      className="h-10 w-10 inline-flex items-center justify-center border border-border hover:bg-muted rounded-lg"
                       title="Edit"
                     >
-                      <PencilSimple size={14} />
+                      <PencilSimple size={16} />
                     </button>
                     <button
                       data-testid={`delete-user-${u.id}`}
                       onClick={() => setConfirmDelete(u.id)}
                       disabled={isSelf}
-                      className="h-9 w-9 inline-flex items-center justify-center border border-border hover:bg-destructive hover:text-destructive-foreground hover:border-destructive rounded-md disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="h-10 w-10 inline-flex items-center justify-center border border-border text-muted-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
                       title="Delete"
                     >
-                      <Trash size={14} />
+                      <Trash size={16} />
                     </button>
                   </div>
                 </div>

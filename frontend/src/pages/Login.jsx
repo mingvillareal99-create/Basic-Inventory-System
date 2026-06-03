@@ -6,9 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sun, Moon, Package } from "@phosphor-icons/react";
 
-const LOGIN_BG =
-  "https://images.pexels.com/photos/7641148/pexels-photo-7641148.jpeg";
-
 export default function Login() {
   const { login } = useAuth();
   const { theme, toggle } = useTheme();
@@ -28,83 +25,45 @@ export default function Login() {
 
   return (
     <div
-      className="min-h-screen w-full relative grid lg:grid-cols-2"
       data-testid="login-page"
+      className="min-h-screen w-full flex flex-col items-center justify-center bg-muted/30 px-4 py-12 relative"
     >
-      {/* Image side (hidden on mobile) */}
-      <div
-        className="hidden lg:block relative"
-        style={{
-          backgroundImage: `url(${LOGIN_BG})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
+      <button
+        data-testid="theme-toggle-login"
+        type="button"
+        onClick={toggle}
+        className="absolute top-4 right-4 h-10 w-10 inline-flex items-center justify-center border border-border hover:bg-muted transition-colors rounded-lg bg-card"
+        aria-label="Toggle theme"
       >
-        <div className="absolute inset-0 bg-black/70" />
-        <div className="relative z-10 h-full p-12 flex flex-col justify-between text-white">
-          <div className="flex items-center gap-2">
-            <Package size={22} weight="duotone" />
-            <span className="font-mono uppercase text-xs tracking-[0.2em]">
-              Stockroom / v1
-            </span>
+        {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+      </button>
+
+      <div className="w-full max-w-md space-y-6">
+        {/* Brand */}
+        <div className="flex flex-col items-center text-center gap-3">
+          <div className="h-14 w-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center card-shadow">
+            <Package size={28} weight="fill" />
           </div>
-          <div className="space-y-6">
-            <h1 className="text-5xl xl:text-6xl leading-[0.95] tracking-tight font-semibold">
-              Inventory,
-              <br />
-              <span className="text-white/60">at a glance.</span>
-            </h1>
-            <p className="text-sm text-white/60 max-w-md leading-relaxed">
-              A tablet-friendly control room for your products. Buy and sell
-              without leaving the table.
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Stockroom</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Simple inventory for everyday use
             </p>
-            <div className="flex items-center gap-6 pt-6 text-xs font-mono uppercase tracking-wider text-white/40">
-              <span>01 — Buy</span>
-              <span>02 — Sell</span>
-              <span>03 — Audit</span>
-            </div>
           </div>
         </div>
-      </div>
 
-      {/* Form side */}
-      <div className="flex items-center justify-center p-6 md:p-12 bg-background min-h-screen lg:min-h-0">
-        <div className="w-full max-w-sm space-y-8 animate-fade-up">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 lg:hidden">
-              <Package size={20} weight="duotone" />
-              <span className="font-mono uppercase text-xs tracking-[0.2em]">
-                Stockroom
-              </span>
-            </div>
-            <button
-              data-testid="theme-toggle-login"
-              type="button"
-              onClick={toggle}
-              className="ml-auto h-10 w-10 inline-flex items-center justify-center border border-border hover:bg-muted transition-colors rounded-md"
-              aria-label="Toggle theme"
-            >
-              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-          </div>
-
-          <div className="space-y-2">
-            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-              Sign in
-            </p>
-            <h2 className="text-3xl tracking-tight font-semibold">
-              Welcome back.
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Continue to your inventory dashboard.
+        {/* Card */}
+        <div className="bg-card rounded-2xl border border-border card-shadow p-6 md:p-8 space-y-6">
+          <div>
+            <h2 className="text-xl font-semibold">Welcome back</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Sign in to manage your inventory.
             </p>
           </div>
 
           <form onSubmit={submit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="font-mono text-[10px] uppercase tracking-[0.2em]">
-                Email
-              </Label>
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm">Email address</Label>
               <Input
                 id="email"
                 data-testid="login-email-input"
@@ -116,10 +75,8 @@ export default function Login() {
                 className="h-12 text-base"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="password" className="font-mono text-[10px] uppercase tracking-[0.2em]">
-                Password
-              </Label>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm">Password</Label>
               <Input
                 id="password"
                 data-testid="login-password-input"
@@ -127,7 +84,7 @@ export default function Login() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 className="h-12 text-base"
               />
             </div>
@@ -135,7 +92,7 @@ export default function Login() {
             {error && (
               <div
                 data-testid="login-error"
-                className="text-xs text-destructive border border-destructive/40 px-3 py-2 font-mono rounded-md"
+                className="text-sm text-destructive bg-destructive/10 border border-destructive/20 px-3 py-2 rounded-lg"
               >
                 {error}
               </div>
@@ -145,17 +102,19 @@ export default function Login() {
               data-testid="login-submit-btn"
               type="submit"
               disabled={loading}
-              className="w-full h-12 font-medium tracking-wide text-base"
+              className="w-full h-12 text-base font-medium"
             >
-              {loading ? "Signing in…" : "Sign in →"}
+              {loading ? "Signing in…" : "Sign in"}
             </Button>
           </form>
+        </div>
 
-          <p className="font-mono text-[10px] text-muted-foreground border-t border-border pt-4">
-            Demo admin: admin@example.com / admin123
-            <br />
-            New accounts are created by admins inside the app.
+        <div className="text-center text-sm text-muted-foreground space-y-1">
+          <p>
+            <span className="font-medium text-foreground">Demo admin:</span>{" "}
+            admin@example.com / admin123
           </p>
+          <p>New accounts are created by an admin inside the app.</p>
         </div>
       </div>
     </div>
