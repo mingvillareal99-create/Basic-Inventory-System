@@ -71,7 +71,6 @@ export default function ProductDialog({ open, onOpenChange, product, onSave }) {
               data-testid="product-name-input"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="e.g. Wireless Mouse"
               className="h-11"
             />
             {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
@@ -84,7 +83,6 @@ export default function ProductDialog({ open, onOpenChange, product, onSave }) {
               data-testid="product-category-input"
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
-              placeholder="e.g. Accessories"
               className="h-11"
             />
             {errors.category && <p className="text-xs text-destructive">{errors.category}</p>}
