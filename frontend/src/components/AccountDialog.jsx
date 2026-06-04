@@ -9,7 +9,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 
-const empty = { email: "", password: "", name: "", role: "personnel" };
+const empty = { username: "", password: "", name: "", role: "personnel" };
 
 export default function AccountDialog({ open, onOpenChange, user, onSave }) {
   const editing = !!user;
@@ -18,7 +18,7 @@ export default function AccountDialog({ open, onOpenChange, user, onSave }) {
 
   useEffect(() => {
     if (user) {
-      setForm({ email: user.email, password: "", name: user.name || "", role: user.role });
+      setForm({ username: user.username, password: "", name: user.name || "", role: user.role });
     } else {
       setForm(empty);
     }
@@ -28,7 +28,7 @@ export default function AccountDialog({ open, onOpenChange, user, onSave }) {
   const submit = (e) => {
     e.preventDefault();
     const errs = {};
-    if (!editing && !form.email.includes("@")) errs.email = "Enter a valid email address";
+    if (!editing && form.username.trim().length < 3) errs.username = "Username must be at least 3 characters";
     if (!editing && form.password.length < 6) errs.password = "Use at least 6 characters";
     if (editing && form.password && form.password.length < 6) errs.password = "Use at least 6 characters";
     setErrors(errs);
@@ -40,7 +40,7 @@ export default function AccountDialog({ open, onOpenChange, user, onSave }) {
       onSave(payload);
     } else {
       onSave({
-        email: form.email.trim().toLowerCase(),
+        username: form.username.trim().toLowerCase(),
         password: form.password,
         name: form.name || null,
         role: form.role,
@@ -64,18 +64,18 @@ export default function AccountDialog({ open, onOpenChange, user, onSave }) {
 
         <form onSubmit={submit} className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label htmlFor="u-email">Email address</Label>
+            <Label htmlFor="u-username">Username</Label>
             <Input
-              id="u-email"
-              data-testid="user-email-input"
-              type="email"
-              value={form.email}
+              id="u-username"
+              data-testid="user-username-input"
+              type="text"
+              value={form.username}
               disabled={editing}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              onChange={(e) => setForm({ ...form, username: e.target.value })}
               className="h-11"
-              placeholder="alex@company.com"
+              placeholder="e.g. alex"
             />
-            {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+            {errors.username && <p className="text-xs text-destructive">{errors.username}</p>}
           </div>
 
           <div className="space-y-2">

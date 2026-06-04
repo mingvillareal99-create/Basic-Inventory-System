@@ -26,8 +26,7 @@ function groupTransactions(items) {
       map.set(key, {
         id: t.id, // first child id becomes the group id (stable enough for testid)
         type: t.type,
-        user_id: t.user_id,
-        user_email: t.user_email,
+        user_username: t.user_username,
         created_at: t.created_at,
         note: t.note,
         items: [],
@@ -75,7 +74,7 @@ export default function TransactionsTab() {
     const s = search.trim().toLowerCase();
     if (!s) return groups;
     return groups.filter((g) => {
-      if (g.user_email.toLowerCase().includes(s)) return true;
+      if (g.user_username.toLowerCase().includes(s)) return true;
       if (g.note && g.note.toLowerCase().includes(s)) return true;
       return g.items.some((it) => it.product_name.toLowerCase().includes(s));
     });
@@ -180,7 +179,7 @@ export default function TransactionsTab() {
                       </div>
                       <p className="font-medium truncate mt-1">{headline}</p>
                       <p className="text-sm text-muted-foreground truncate">
-                        {g.user_email} · {formatDate(g.created_at)}
+                        {g.user_username} · {formatDate(g.created_at)}
                       </p>
                     </div>
                     <div className="text-right shrink-0">

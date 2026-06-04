@@ -66,7 +66,7 @@ export default function InventoryTable({
                 Unit price
               </th>
               {isAdmin && (
-                <th className="text-right text-xs uppercase tracking-wide font-semibold text-muted-foreground px-5 py-3 w-[140px]">
+                <th className="text-right text-xs uppercase tracking-wide font-semibold text-muted-foreground px-5 py-3 min-w-[180px] md:min-w-[240px]">
                   Actions
                 </th>
               )}
@@ -197,10 +197,10 @@ export default function InventoryTable({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-border">
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border">
                 <p className="font-semibold tabular">{formatPeso(p.price)}</p>
                 {isAdmin && (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <button
                       data-testid={`buy-${p.id}`}
                       onClick={() => onBuy?.(p)}

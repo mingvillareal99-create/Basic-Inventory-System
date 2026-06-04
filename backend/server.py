@@ -15,7 +15,7 @@ from bson import ObjectId
 from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field
 
 
 # ----------------- Config -----------------
@@ -23,7 +23,7 @@ MONGO_URL = os.environ["MONGO_URL"]
 DB_NAME = os.environ["DB_NAME"]
 JWT_SECRET = os.environ["JWT_SECRET"]
 JWT_ALGORITHM = "HS256"
-ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@example.com")
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", os.environ.get("ADMIN_EMAIL", "admin"))
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 
@@ -48,9 +48,9 @@ def verify_password(plain: str, hashed: str) -> bool:
         return False
 
 
-def create_access_token(user_id: str, email: str, role: str) -> str:
+def create_access_token(user_id: str, username: str, role: str) -> str:
     payload = {
-        "sub": user_id, "email": email, "role": role,
+        "sub": user_id, "username": username, "role": role,
         "exp": datetime.now(timezone.utc) + timedelta(minutes=60),
         "type": "access",
     }
@@ -67,8 +67,10 @@ def create_refresh_token(user_id: str) -> str:
 
 
 def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
-    response.set_cookie("access_token", access_token, httponly=True, secure=True, samesite="none", max_age=3600, path="/")
-    response.set_cookie("refresh_token", refresh_token, httponly=True, secure=True, samesite="none", max_age=604800, path="/")
+    is_secure = not (FRONTEND_URL.startswith("http://localhost") or FRONTEND_URL.startswith("http://127.0.0.1"))
+    samesite = "none" if is_secure else "lax"
+    response.set_cookie("access_token", access_token, httponly=True, secure=is_secure, samesite=samesite, max_age=3600, path="/")
+    response.set_cookie("refresh_token", refresh_token, httponly=True, secure=is_secure, samesite=samesite, max_age=604800, path="/")
 
 
 def now_iso() -> str:
@@ -77,12 +79,12 @@ def now_iso() -> str:
 
 # ----------------- Models -----------------
 class LoginIn(BaseModel):
-    email: EmailStr
+    username: str
     password: str
 
 
 class UserCreateIn(BaseModel):
-    email: EmailStr
+    username: str = Field(min_length=3)
     password: str = Field(min_length=6)
     name: Optional[str] = None
     role: str = "personnel"
@@ -166,7 +168,7 @@ def require_admin(user: dict = Depends(get_current_user)) -> dict:
 def serialize_user(user: dict) -> dict:
     return {
         "id": str(user.get("_id") or user.get("id")),
-        "email": user["email"],
+        "username": user.get("username") or user.get("email", ""),
         "name": user.get("name"),
         "role": user.get("role", "personnel"),
         "created_at": user.get("created_at"),
@@ -195,7 +197,7 @@ def serialize_transaction(t: dict) -> dict:
         "unit_price": float(t["unit_price"]),
         "total": float(t["unit_price"]) * int(t["quantity"]),
         "user_id": t["user_id"],
-        "user_email": t["user_email"],
+        "user_username": t.get("user_username") or t.get("user_email", ""),
         "note": t.get("note"),
         "created_at": t["created_at"],
     }
@@ -254,20 +256,20 @@ async def root():
 # ---------- Auth Routes ----------
 @auth_router.post("/login")
 async def login(payload: LoginIn, request: Request, response: Response):
-    email = payload.email.lower()
+    username = payload.username.lower().strip()
     ip = real_client_ip(request)
-    identifier = f"{ip}:{email}"
+    identifier = f"{ip}:{username}"
     await check_lockout(identifier)
 
-    user = await db.users.find_one({"email": email})
+    user = await db.users.find_one({"username": username})
     if not user or not verify_password(payload.password, user["password_hash"]):
         await register_failed(identifier)
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        raise HTTPException(status_code=401, detail="Invalid username or password")
 
     await clear_failed(identifier)
     user_id = str(user["_id"])
     role = user.get("role", "personnel")
-    set_auth_cookies(response, create_access_token(user_id, email, role), create_refresh_token(user_id))
+    set_auth_cookies(response, create_access_token(user_id, username, role), create_refresh_token(user_id))
     return serialize_user(user)
 
 
@@ -294,13 +296,13 @@ async def list_users(_admin: dict = Depends(require_admin)):
 async def create_user(payload: UserCreateIn, _admin: dict = Depends(require_admin)):
     if payload.role not in ROLES:
         raise HTTPException(status_code=400, detail=f"Role must be one of {sorted(ROLES)}")
-    email = payload.email.lower()
-    if await db.users.find_one({"email": email}):
-        raise HTTPException(status_code=400, detail="Email already registered")
+    username = payload.username.lower().strip()
+    if await db.users.find_one({"username": username}):
+        raise HTTPException(status_code=400, detail="Username already registered")
     doc = {
-        "email": email,
+        "username": username,
         "password_hash": hash_password(payload.password),
-        "name": payload.name or email.split("@")[0],
+        "name": payload.name or username,
         "role": payload.role,
         "created_at": now_iso(),
     }
@@ -490,7 +492,7 @@ async def create_transaction(payload: TransactionIn, user: dict = Depends(get_cu
         "quantity": payload.quantity,
         "unit_price": payload.unit_price,
         "user_id": user["_id"],
-        "user_email": user["email"],
+        "user_username": user["username"],
         "note": payload.note,
         "created_at": now_iso(),
     }
@@ -541,7 +543,7 @@ async def create_transactions_bulk(payload: BulkTransactionIn, user: dict = Depe
             "quantity": item.quantity,
             "unit_price": item.unit_price,
             "user_id": user["_id"],
-            "user_email": user["email"],
+            "user_username": user["username"],
             "note": payload.note,
             "created_at": ts,
         }
@@ -570,23 +572,65 @@ app.add_middleware(
 # ----------------- Startup -----------------
 @app.on_event("startup")
 async def startup():
-    await db.users.create_index("email", unique=True)
+    import uuid
+
+    # Drop legacy email unique index if it exists, to prevent duplicate key errors on null values
+    try:
+        await db.users.drop_index("email_1")
+    except Exception:
+        pass
+
+    # 1. Migrate legacy users from email to username
+    async for user in db.users.find({"username": {"$exists": False}}):
+        email = user.get("email")
+        if email:
+            username = email.split("@")[0].lower().strip()
+            # Ensure unique username
+            base_username = username
+            counter = 1
+            while await db.users.find_one({"username": username}) or username in ("admin", "personnel"):
+                username = f"{base_username}_{counter}"
+                counter += 1
+            await db.users.update_one(
+                {"_id": user["_id"]},
+                {"$set": {"username": username}, "$unset": {"email": ""}}
+            )
+            logger.info("Migrated legacy user email %s to username %s", email, username)
+        else:
+            username = f"user_{uuid.uuid4().hex[:8]}"
+            await db.users.update_one(
+                {"_id": user["_id"]},
+                {"$set": {"username": username}}
+            )
+
+    # 2. Migrate legacy transactions from user_email to user_username
+    async for tx in db.transactions.find({"user_username": {"$exists": False}}):
+        user_email = tx.get("user_email")
+        if user_email:
+            user_username = user_email.split("@")[0].lower().strip()
+            await db.transactions.update_one(
+                {"_id": tx["_id"]},
+                {"$set": {"user_username": user_username}, "$unset": {"user_email": ""}}
+            )
+            logger.info("Migrated legacy transaction user_email %s to user_username %s", user_email, user_username)
+
+    await db.users.create_index("username", unique=True)
     await db.login_attempts.create_index("identifier")
     await db.products.create_index("name")
     await db.products.create_index("category")
     await db.transactions.create_index("created_at")
     await db.transactions.create_index("product_id")
 
-    existing = await db.users.find_one({"email": ADMIN_EMAIL})
+    existing = await db.users.find_one({"username": ADMIN_USERNAME})
     if existing is None:
         await db.users.insert_one({
-            "email": ADMIN_EMAIL,
+            "username": ADMIN_USERNAME,
             "password_hash": hash_password(ADMIN_PASSWORD),
             "name": "Admin",
             "role": "admin",
             "created_at": now_iso(),
         })
-        logger.info("Seeded admin user: %s", ADMIN_EMAIL)
+        logger.info("Seeded admin user: %s", ADMIN_USERNAME)
     else:
         update = {}
         if not verify_password(ADMIN_PASSWORD, existing["password_hash"]):
@@ -594,7 +638,7 @@ async def startup():
         if existing.get("role") != "admin":
             update["role"] = "admin"
         if update:
-            await db.users.update_one({"email": ADMIN_EMAIL}, {"$set": update})
+            await db.users.update_one({"username": ADMIN_USERNAME}, {"$set": update})
 
 
 @app.on_event("shutdown")

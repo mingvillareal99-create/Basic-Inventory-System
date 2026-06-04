@@ -103,11 +103,11 @@ export default function AccountsTab({ currentUser }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">
-                      {u.name || u.email}
+                      {u.name || u.username}
                       {isSelf && <span className="ml-2 text-xs text-muted-foreground font-normal">(you)</span>}
                     </p>
                     <p className="text-sm text-muted-foreground truncate">
-                      {u.email} · <span className="capitalize">{u.role}</span>
+                      {u.username} · <span className="capitalize">{u.role}</span>
                       {u.created_at && ` · Added ${formatDate(u.created_at)}`}
                     </p>
                   </div>

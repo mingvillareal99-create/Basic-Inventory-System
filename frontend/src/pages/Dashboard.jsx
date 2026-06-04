@@ -65,7 +65,7 @@ export default function Dashboard() {
 
           <div className="flex items-center gap-2">
             <div className="hidden md:flex flex-col text-right leading-tight pr-2">
-              <span className="text-sm font-medium" data-testid="header-user-email">{user?.email}</span>
+              <span className="text-sm font-medium" data-testid="header-user-username">{user?.username}</span>
               <span className="text-xs text-muted-foreground capitalize" data-testid="header-user-role">
                 {user?.role}
               </span>
@@ -99,7 +99,7 @@ export default function Dashboard() {
                   key={t.id}
                   data-testid={`tab-${t.id}`}
                   onClick={() => setTab(t.id)}
-                  className={`px-4 py-3.5 flex items-center gap-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  className={`px-2.5 sm:px-4 py-3.5 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                     active
                       ? "border-primary text-primary"
                       : "border-transparent text-muted-foreground hover:text-foreground"

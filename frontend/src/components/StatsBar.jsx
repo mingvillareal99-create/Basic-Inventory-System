@@ -23,7 +23,7 @@ function StatCard({ label, value, sub, icon: Icon, iconClass, valueClass, testid
 
 export default function StatsBar({ stats }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
       <StatCard
         testid="stat-total"
         label="Total products"
@@ -41,14 +41,16 @@ export default function StatsBar({ stats }) {
         iconClass={stats.low > 0 ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground"}
         valueClass={stats.low > 0 ? "text-warning" : ""}
       />
-      <StatCard
-        testid="stat-value"
-        label="Inventory value"
-        value={formatPeso(stats.value)}
-        sub="Quantity × unit price"
-        icon={CurrencyCircleDollar}
-        iconClass="bg-primary-soft text-primary"
-      />
+      <div className="sm:col-span-2 md:col-span-1">
+        <StatCard
+          testid="stat-value"
+          label="Inventory value"
+          value={formatPeso(stats.value)}
+          sub="Quantity × unit price"
+          icon={CurrencyCircleDollar}
+          iconClass="bg-primary-soft text-primary"
+        />
+      </div>
     </div>
   );
 }

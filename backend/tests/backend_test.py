@@ -16,20 +16,20 @@ if not BASE_URL:
 BASE_URL = BASE_URL.rstrip("/")
 API = f"{BASE_URL}/api"
 
-ADMIN_EMAIL = "admin@example.com"
+ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "admin123"
 
 
 # ----------------- Fixtures -----------------
-def _login(email, password):
+def _login(username, password):
     s = requests.Session()
-    r = s.post(f"{API}/auth/login", json={"email": email, "password": password})
+    r = s.post(f"{API}/auth/login", json={"username": username, "password": password})
     return s, r
 
 
 @pytest.fixture(scope="session")
 def admin_session():
-    s, r = _login(ADMIN_EMAIL, ADMIN_PASSWORD)
+    s, r = _login(ADMIN_USERNAME, ADMIN_PASSWORD)
     assert r.status_code == 200, f"Admin login failed: {r.status_code} {r.text}"
     assert "access_token" in s.cookies
     return s
@@ -38,14 +38,14 @@ def admin_session():
 @pytest.fixture(scope="session")
 def personnel_creds(admin_session):
     """Create a personnel user via admin, return creds + cleanup."""
-    email = f"test_clerk_{uuid.uuid4().hex[:8]}@example.com"
+    username = f"clerk_{uuid.uuid4().hex[:8]}"
     password = "clerk123"
     r = admin_session.post(f"{API}/users", json={
-        "email": email, "password": password, "name": "Test Clerk", "role": "personnel"
+        "username": username, "password": password, "name": "Test Clerk", "role": "personnel"
     })
     assert r.status_code == 201, r.text
     user_id = r.json()["id"]
-    yield {"email": email, "password": password, "id": user_id}
+    yield {"username": username, "password": password, "id": user_id}
     try:
         admin_session.delete(f"{API}/users/{user_id}")
     except Exception:
@@ -54,7 +54,7 @@ def personnel_creds(admin_session):
 
 @pytest.fixture(scope="session")
 def personnel_session(personnel_creds):
-    s, r = _login(personnel_creds["email"], personnel_creds["password"])
+    s, r = _login(personnel_creds["username"], personnel_creds["password"])
     assert r.status_code == 200, r.text
     return s
 
@@ -73,14 +73,14 @@ def cleanup_products(admin_session):
 # ----------------- Auth -----------------
 class TestAuth:
     def test_register_endpoint_removed(self):
-        r = requests.post(f"{API}/auth/register", json={"email": "x@y.z", "password": "abcdef"})
+        r = requests.post(f"{API}/auth/register", json={"username": "xyz", "password": "abcdef"})
         assert r.status_code == 404, f"/auth/register should be removed, got {r.status_code}"
 
     def test_login_admin(self, admin_session):
         r = admin_session.get(f"{API}/auth/me")
         assert r.status_code == 200
         data = r.json()
-        assert data["email"] == ADMIN_EMAIL
+        assert data["username"] == ADMIN_USERNAME
         assert data["role"] == "admin"
         assert "id" in data
 
@@ -88,23 +88,23 @@ class TestAuth:
         r = personnel_session.get(f"{API}/auth/me")
         assert r.status_code == 200
         assert r.json()["role"] == "personnel"
-        assert r.json()["email"] == personnel_creds["email"]
+        assert r.json()["username"] == personnel_creds["username"]
 
     def test_login_wrong_password(self):
-        _, r = _login(ADMIN_EMAIL, "wrongpw_xyz")
+        _, r = _login(ADMIN_USERNAME, "wrongpw_xyz")
         assert r.status_code == 401
 
     def test_brute_force_lockout(self, admin_session):
         # Create a temp user to brute-force
-        email = f"TEST_lock_{uuid.uuid4().hex[:8]}@example.com"
-        rc = admin_session.post(f"{API}/users", json={"email": email, "password": "correctpw1", "role": "personnel"})
+        username = f"TEST_lock_{uuid.uuid4().hex[:8]}"
+        rc = admin_session.post(f"{API}/users", json={"username": username, "password": "correctpw1", "role": "personnel"})
         assert rc.status_code == 201
         uid = rc.json()["id"]
         try:
             s = requests.Session()
             statuses = []
             for _ in range(6):
-                r = s.post(f"{API}/auth/login", json={"email": email, "password": "wrongpw"})
+                r = s.post(f"{API}/auth/login", json={"username": username, "password": "wrongpw"})
                 statuses.append(r.status_code)
             assert statuses[:5] == [401] * 5, f"Got {statuses}"
             assert statuses[5] == 429, f"Expected 429 on 6th, got {statuses}"
@@ -120,7 +120,7 @@ class TestUsers:
 
     def test_personnel_cannot_create_user(self, personnel_session):
         r = personnel_session.post(f"{API}/users", json={
-            "email": f"TEST_x_{uuid.uuid4().hex[:6]}@example.com", "password": "abcdef", "role": "personnel"
+            "username": f"TEST_x_{uuid.uuid4().hex[:6]}", "password": "abcdef", "role": "personnel"
         })
         assert r.status_code == 403
 
@@ -129,47 +129,47 @@ class TestUsers:
         assert r.status_code == 200
         users = r.json()
         assert isinstance(users, list)
-        assert any(u["email"] == ADMIN_EMAIL for u in users)
+        assert any(u["username"] == ADMIN_USERNAME for u in users)
 
     def test_create_user_default_role_personnel(self, admin_session):
-        email = f"test_def_{uuid.uuid4().hex[:6]}@example.com"
-        r = admin_session.post(f"{API}/users", json={"email": email, "password": "abcdef"})
+        username = f"test_def_{uuid.uuid4().hex[:6]}"
+        r = admin_session.post(f"{API}/users", json={"username": username, "password": "abcdef"})
         assert r.status_code == 201, r.text
         data = r.json()
         assert data["role"] == "personnel"
-        assert data["email"] == email
+        assert data["username"] == username
         admin_session.delete(f"{API}/users/{data['id']}")
 
     def test_create_user_admin_role(self, admin_session):
-        email = f"TEST_adm_{uuid.uuid4().hex[:6]}@example.com"
-        r = admin_session.post(f"{API}/users", json={"email": email, "password": "abcdef", "role": "admin"})
+        username = f"TEST_adm_{uuid.uuid4().hex[:6]}"
+        r = admin_session.post(f"{API}/users", json={"username": username, "password": "abcdef", "role": "admin"})
         assert r.status_code == 201
         assert r.json()["role"] == "admin"
         admin_session.delete(f"{API}/users/{r.json()['id']}")
 
     def test_create_user_duplicate(self, admin_session):
-        email = f"TEST_dup_{uuid.uuid4().hex[:6]}@example.com"
-        r1 = admin_session.post(f"{API}/users", json={"email": email, "password": "abcdef"})
+        username = f"TEST_dup_{uuid.uuid4().hex[:6]}"
+        r1 = admin_session.post(f"{API}/users", json={"username": username, "password": "abcdef"})
         assert r1.status_code == 201
-        r2 = admin_session.post(f"{API}/users", json={"email": email, "password": "abcdef"})
+        r2 = admin_session.post(f"{API}/users", json={"username": username, "password": "abcdef"})
         assert r2.status_code == 400
         admin_session.delete(f"{API}/users/{r1.json()['id']}")
 
     def test_create_user_invalid_role(self, admin_session):
         r = admin_session.post(f"{API}/users", json={
-            "email": f"TEST_ir_{uuid.uuid4().hex[:6]}@example.com", "password": "abcdef", "role": "owner"
+            "username": f"TEST_ir_{uuid.uuid4().hex[:6]}", "password": "abcdef", "role": "owner"
         })
         assert r.status_code == 400
 
     def test_create_user_short_password(self, admin_session):
         r = admin_session.post(f"{API}/users", json={
-            "email": f"TEST_sp_{uuid.uuid4().hex[:6]}@example.com", "password": "abc"
+            "username": f"TEST_sp_{uuid.uuid4().hex[:6]}", "password": "abc"
         })
         assert r.status_code == 422
 
     def test_update_user(self, admin_session):
-        email = f"TEST_upd_{uuid.uuid4().hex[:6]}@example.com"
-        r = admin_session.post(f"{API}/users", json={"email": email, "password": "abcdef"})
+        username = f"TEST_upd_{uuid.uuid4().hex[:6]}"
+        r = admin_session.post(f"{API}/users", json={"username": username, "password": "abcdef"})
         uid = r.json()["id"]
         try:
             # Update name + role + password
@@ -180,20 +180,20 @@ class TestUsers:
             assert ru.json()["name"] == "Updated"
             assert ru.json()["role"] == "admin"
             # Verify new password works
-            _, rl = _login(email, "newpass1")
+            _, rl = _login(username, "newpass1")
             assert rl.status_code == 200
         finally:
             admin_session.delete(f"{API}/users/{uid}")
 
     def test_cannot_demote_only_admin(self, admin_session):
-        # admin@example.com is the only admin in seeded state. Get its id.
+        # admin is the only admin in seeded state. Get its id.
         users = admin_session.get(f"{API}/users").json()
         # Ensure only one admin exists (delete any extra TEST admins from earlier failures)
         admins = [u for u in users if u["role"] == "admin"]
-        me = next(u for u in users if u["email"] == ADMIN_EMAIL)
+        me = next(u for u in users if u["username"] == ADMIN_USERNAME)
         # Clean up extras
         for a in admins:
-            if a["email"] != ADMIN_EMAIL and a["email"].startswith("TEST_"):
+            if a["username"] != ADMIN_USERNAME and a["username"].startswith("TEST_"):
                 admin_session.delete(f"{API}/users/{a['id']}")
         # Now try to demote self
         r = admin_session.patch(f"{API}/users/{me['id']}", json={"role": "personnel"})
@@ -259,7 +259,7 @@ class TestTransactions:
         assert tx["unit_price"] == 4.0
         assert tx["total"] == 20.0
         assert "product_name" in tx
-        assert "user_email" in tx
+        assert "user_username" in tx
         assert "created_at" in tx
 
         # Verify stock incremented
@@ -316,7 +316,7 @@ class TestTransactions:
         assert len(txs) >= 2
         for t in txs:
             assert "product_name" in t and "type" in t and "quantity" in t
-            assert "unit_price" in t and "total" in t and "user_email" in t and "created_at" in t
+            assert "unit_price" in t and "total" in t and "user_username" in t and "created_at" in t
 
         # Filter buy
         rbuy = personnel_session.get(f"{API}/transactions", params={"product_id": pid, "type": "buy"})

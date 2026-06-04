@@ -9,7 +9,7 @@ import { Sun, Moon, Package } from "@phosphor-icons/react";
 export default function Login() {
   const { login } = useAuth();
   const { theme, toggle } = useTheme();
-  const [email, setEmail] = useState("admin@example.com");
+  const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("admin123");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,7 +18,7 @@ export default function Login() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    const res = await login(email, password);
+    const res = await login(username, password);
     setLoading(false);
     if (!res.ok) setError(res.error);
   };
@@ -63,15 +63,15 @@ export default function Login() {
 
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm">Email address</Label>
+              <Label htmlFor="username" className="text-sm">Username</Label>
               <Input
-                id="email"
-                data-testid="login-email-input"
-                type="email"
+                id="username"
+                data-testid="login-username-input"
+                type="text"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your username"
                 className="h-12 text-base"
               />
             </div>
@@ -112,7 +112,7 @@ export default function Login() {
         <div className="text-center text-sm text-muted-foreground space-y-1">
           <p>
             <span className="font-medium text-foreground">Demo admin:</span>{" "}
-            admin@example.com / admin123
+            admin / admin123
           </p>
           <p>New accounts are created by an admin inside the app.</p>
         </div>

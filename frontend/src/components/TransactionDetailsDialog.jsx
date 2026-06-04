@@ -6,6 +6,7 @@ import { formatPeso } from "@/lib/format";
 import {
   ShoppingCart, ShoppingBag, DownloadSimple, X,
 } from "@phosphor-icons/react";
+import { jsPDF } from "jspdf";
 
 function formatDateLong(iso) {
   try {
@@ -16,41 +17,154 @@ function formatDateLong(iso) {
   } catch { return iso; }
 }
 
-function buildReceiptCSV(group) {
-  const lines = [];
-  const ref = group.id.slice(-8).toUpperCase();
-  lines.push(`Stockroom ${group.type === "buy" ? "Purchase" : "Sale"} Receipt`);
-  lines.push(`Reference,${ref}`);
-  lines.push(`Type,${group.type === "buy" ? "Buy / Restock" : "Sell"}`);
-  lines.push(`Recorded by,${group.user_email}`);
-  lines.push(`Date,${formatDateLong(group.created_at)}`);
-  if (group.note) lines.push(`Note,"${String(group.note).replace(/"/g, '""')}"`);
-  lines.push("");
-  lines.push("Product,Quantity,Unit Price (PHP),Subtotal (PHP)");
-  group.items.forEach((it) => {
-    const safeName = `"${String(it.product_name).replace(/"/g, '""')}"`;
-    lines.push(
-      `${safeName},${it.quantity},${Number(it.unit_price).toFixed(2)},${Number(it.total).toFixed(2)}`
-    );
-  });
-  lines.push("");
-  lines.push(`,,Total units,${group.total_units}`);
-  lines.push(`,,Grand total (PHP),${Number(group.total_amount).toFixed(2)}`);
-  return lines.join("\n");
-}
-
 function downloadGroup(group) {
-  const csv = buildReceiptCSV(group);
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4"
+  });
+
+  const ref = group.id.slice(-8).toUpperCase();
+  const isBuy = group.type === "buy";
+  
+  // Set font
+  doc.setFont("helvetica", "normal");
+
+  // Title
+  doc.setFontSize(20);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(26, 109, 58); // primary green
+  doc.text(`STOCKROOM ${isBuy ? "PURCHASE" : "SALE"} RECEIPT`, 14, 22);
+
+  // Divider line
+  doc.setDrawColor(220, 220, 220);
+  doc.setLineWidth(0.5);
+  doc.line(14, 26, 196, 26);
+
+  // Metadata section
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(100, 100, 100);
+
+  doc.text("Reference:", 14, 34);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 30, 30);
+  doc.text(`#${ref}`, 40, 34);
+
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 100, 100);
+  doc.text("Date:", 14, 40);
+  doc.setTextColor(30, 30, 30);
+  doc.text(formatDateLong(group.created_at), 40, 40);
+
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 100, 100);
+  doc.text("Recorded by:", 14, 46);
+  doc.setTextColor(30, 30, 30);
+  doc.text(group.user_username, 40, 46);
+
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 100, 100);
+  doc.text("Type:", 14, 52);
+  doc.setTextColor(30, 30, 30);
+  doc.text(isBuy ? "Buy / Restock" : "Sell", 40, 52);
+
+  let currentY = 58;
+
+  if (group.note) {
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    doc.text("Note:", 14, currentY);
+    doc.setTextColor(30, 30, 30);
+    doc.setFont("helvetica", "italic");
+    const splitNote = doc.splitTextToSize(group.note, 150);
+    doc.text(splitNote, 40, currentY);
+    doc.setFont("helvetica", "normal");
+    currentY += (splitNote.length * 5) + 2;
+  } else {
+    currentY += 2;
+  }
+
+  // Draw table header block
+  doc.setFillColor(245, 245, 245);
+  doc.rect(14, currentY, 182, 8, "F");
+  
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(80, 80, 80);
+  doc.text("Product Name", 16, currentY + 5.5);
+  doc.text("Qty", 120, currentY + 5.5, { align: "right" });
+  doc.text("Unit Price", 155, currentY + 5.5, { align: "right" });
+  doc.text("Total", 192, currentY + 5.5, { align: "right" });
+
+  currentY += 8;
+
+  // Draw items
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(50, 50, 50);
+  
+  group.items.forEach((it) => {
+    if (currentY > 270) {
+      doc.addPage();
+      currentY = 20;
+      doc.setFillColor(245, 245, 245);
+      doc.rect(14, currentY, 182, 8, "F");
+      doc.setFont("helvetica", "bold");
+      doc.text("Product Name", 16, currentY + 5.5);
+      doc.text("Qty", 120, currentY + 5.5, { align: "right" });
+      doc.text("Unit Price", 155, currentY + 5.5, { align: "right" });
+      doc.text("Total", 192, currentY + 5.5, { align: "right" });
+      currentY += 10;
+      doc.setFont("helvetica", "normal");
+    }
+
+    const priceText = `PHP ${Number(it.unit_price).toFixed(2)}`;
+    const totalText = `PHP ${Number(it.total).toFixed(2)}`;
+    
+    const splitName = doc.splitTextToSize(it.product_name, 90);
+    const rowHeight = Math.max(splitName.length * 5, 8);
+
+    doc.text(splitName, 16, currentY + 5);
+    doc.text(String(it.quantity), 120, currentY + 5, { align: "right" });
+    doc.text(priceText, 155, currentY + 5, { align: "right" });
+    doc.text(totalText, 192, currentY + 5, { align: "right" });
+
+    doc.setDrawColor(240, 240, 240);
+    doc.setLineWidth(0.2);
+    doc.line(14, currentY + rowHeight, 196, currentY + rowHeight);
+
+    currentY += rowHeight;
+  });
+
+  // Totals Section
+  currentY += 5;
+  if (currentY > 260) {
+    doc.addPage();
+    currentY = 20;
+  }
+
+  doc.setFillColor(245, 252, 247); // soft green tint
+  doc.rect(14, currentY, 182, 22, "F");
+  doc.setDrawColor(210, 235, 218);
+  doc.setLineWidth(0.5);
+  doc.rect(14, currentY, 182, 22, "S");
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(100, 100, 100);
+  doc.text("Total Units:", 20, currentY + 8);
+  doc.setTextColor(30, 30, 30);
+  doc.text(String(group.total_units), 50, currentY + 8);
+
+  doc.setTextColor(100, 100, 100);
+  doc.text("Grand Total:", 20, currentY + 15);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(26, 109, 58); // primary green
+  doc.text(`PHP ${Number(group.total_amount).toFixed(2)}`, 50, currentY + 15);
+
   const stamp = new Date(group.created_at).toISOString().slice(0, 16).replace(/[-:T]/g, "");
-  a.href = url;
-  a.download = `${group.type}-${stamp}-${group.id.slice(-6)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  doc.save(`${group.type}-${stamp}-${group.id.slice(-6)}.pdf`);
 }
 
 export default function TransactionDetailsDialog({ open, onOpenChange, group }) {
@@ -86,7 +200,7 @@ export default function TransactionDetailsDialog({ open, onOpenChange, group }) 
           <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
             <div>
               <p className="text-muted-foreground text-xs">Recorded by</p>
-              <p className="font-medium truncate" data-testid="tx-details-user">{group.user_email}</p>
+              <p className="font-medium truncate" data-testid="tx-details-user">{group.user_username}</p>
             </div>
             <div>
               <p className="text-muted-foreground text-xs">Date</p>
@@ -152,7 +266,7 @@ export default function TransactionDetailsDialog({ open, onOpenChange, group }) 
             onClick={() => downloadGroup(group)}
             className="bg-primary hover:bg-primary/90 gap-2"
           >
-            <DownloadSimple size={16} weight="bold" /> Download (CSV)
+            <DownloadSimple size={16} weight="bold" /> Download (PDF)
           </Button>
         </DialogFooter>
       </DialogContent>
