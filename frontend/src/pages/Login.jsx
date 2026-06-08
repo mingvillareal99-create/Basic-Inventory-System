@@ -4,13 +4,14 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sun, Moon, Package } from "@phosphor-icons/react";
+import { Sun, Moon, Package, Eye, EyeSlash } from "@phosphor-icons/react";
 
 export default function Login() {
   const { login } = useAuth();
   const { theme, toggle } = useTheme();
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("admin123");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -77,16 +78,26 @@ export default function Login() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm">Password</Label>
-              <Input
-                id="password"
-                data-testid="login-password-input"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                className="h-12 text-base"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  data-testid="login-password-input"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="h-12 text-base pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeSlash size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -109,13 +120,6 @@ export default function Login() {
           </form>
         </div>
 
-        <div className="text-center text-sm text-muted-foreground space-y-1">
-          <p>
-            <span className="font-medium text-foreground">Demo admin:</span>{" "}
-            admin / admin123
-          </p>
-          <p>New accounts are created by an admin inside the app.</p>
-        </div>
       </div>
     </div>
   );
