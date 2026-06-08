@@ -66,7 +66,10 @@ export default function TransactionsTab() {
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [filter]);
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
 
   const groups = useMemo(() => groupTransactions(items), [items]);
 
