@@ -275,8 +275,10 @@ async def login(payload: LoginIn, request: Request, response: Response):
 
 @auth_router.post("/logout")
 async def logout(response: Response, _user: dict = Depends(get_current_user)):
-    response.delete_cookie("access_token", path="/")
-    response.delete_cookie("refresh_token", path="/")
+    is_secure = not (FRONTEND_URL.startswith("http://localhost") or FRONTEND_URL.startswith("http://127.0.0.1"))
+    samesite = "none" if is_secure else "lax"
+    response.delete_cookie("access_token", path="/", secure=is_secure, samesite=samesite)
+    response.delete_cookie("refresh_token", path="/", secure=is_secure, samesite=samesite)
     return {"ok": True}
 
 
