@@ -35,7 +35,7 @@ export default function InventoryTab({ products, loading, isAdmin, reload, onBuy
       doc.setFont("helvetica", "bold");
       doc.setFontSize(22);
       doc.setTextColor(30, 41, 59); // Slate-800
-      doc.text("Stockroom", 15, 20);
+      doc.text("Palm's Inventory", 15, 20);
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(12);
@@ -210,13 +210,13 @@ export default function InventoryTab({ products, loading, isAdmin, reload, onBuy
         doc.setFontSize(8);
         doc.setTextColor(148, 163, 184); // Slate-400
         doc.line(15, 280, 195, 280);
-        doc.text("Stockroom Inventory Report", 15, 285);
+        doc.text("Palm's Inventory Report", 15, 285);
         doc.text(`Page ${i} of ${totalPages}`, 195, 285, { align: "right" });
       }
 
       // Save PDF
       const cleanDate = new Date().toISOString().slice(0, 10);
-      doc.save(`inventory_export_${cleanDate}.pdf`);
+      doc.save(`palms_inventory_export_${cleanDate}.pdf`);
       toast.success("PDF exported successfully");
     } catch (e) {
       console.error(e);

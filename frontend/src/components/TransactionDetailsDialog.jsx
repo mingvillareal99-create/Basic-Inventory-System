@@ -34,7 +34,7 @@ function downloadGroup(group) {
   doc.setFontSize(20);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(26, 109, 58); // primary green
-  doc.text(`STOCKROOM ${isBuy ? "PURCHASE" : "SALE"} RECEIPT`, 14, 22);
+  doc.text(`PALM'S INVENTORY ${isBuy ? "PURCHASE" : "SALE"} RECEIPT`, 14, 22);
 
   // Divider line
   doc.setDrawColor(220, 220, 220);
@@ -164,7 +164,7 @@ function downloadGroup(group) {
   doc.text(`PHP ${Number(group.total_amount).toFixed(2)}`, 50, currentY + 15);
 
   const stamp = new Date(group.created_at).toISOString().slice(0, 16).replace(/[-:T]/g, "");
-  doc.save(`${group.type}-${stamp}-${group.id.slice(-6)}.pdf`);
+  doc.save(`palms_receipt_${group.type}_${stamp}_${group.id.slice(-6)}.pdf`);
 }
 
 export default function TransactionDetailsDialog({ open, onOpenChange, group }) {

@@ -45,7 +45,7 @@ export default function Login() {
             <Package size={28} weight="fill" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Stockroom</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Palm's Inventory</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Simple inventory for everyday use
             </p>

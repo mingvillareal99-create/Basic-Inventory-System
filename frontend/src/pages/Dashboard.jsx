@@ -58,7 +58,7 @@ export default function Dashboard() {
               <Package size={20} weight="fill" />
             </div>
             <div>
-              <p className="text-base font-semibold leading-tight">Stockroom</p>
+              <p className="text-base font-semibold leading-tight">Palm's Inventory</p>
               <p className="text-xs text-muted-foreground leading-tight">Inventory dashboard</p>
             </div>
           </div>
