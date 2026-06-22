@@ -374,9 +374,9 @@ export default function CartDialog({
     <AlertDialog open={showConfirmClose} onOpenChange={setShowConfirmClose}>
       <AlertDialogContent data-testid="cart-confirm-close-dialog">
         <AlertDialogHeader>
-          <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
+          <AlertDialogTitle>Cancel order</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to cancel? Your changes will be lost.
+            Do you really want to cancel selected orders?
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
