@@ -2,10 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
-  ShoppingCart, ShoppingBag, MagnifyingGlass, CaretRight, Receipt,
+  ShoppingCart, ShoppingBag, MagnifyingGlass, CaretRight, Receipt, Calendar,
 } from "@phosphor-icons/react";
 import { formatPeso } from "@/lib/format";
+import { useAuth } from "@/contexts/AuthContext";
 import TransactionDetailsDialog from "@/components/TransactionDetailsDialog";
 
 function formatDate(iso) {
@@ -49,10 +53,12 @@ function groupTransactions(items) {
 }
 
 export default function TransactionsTab() {
+  const { isAdmin } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [selectedDate, setSelectedDate] = useState(null);
   const [detailsGroup, setDetailsGroup] = useState(null);
 
   const load = async () => {
@@ -71,7 +77,41 @@ export default function TransactionsTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
-  const groups = useMemo(() => groupTransactions(items), [items]);
+  const filteredItems = useMemo(() => {
+    let list = items;
+    if (selectedDate) {
+      const selectedYMD = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
+      list = list.filter((item) => {
+        const d = new Date(item.created_at);
+        const itemYMD = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        return itemYMD === selectedYMD;
+      });
+    }
+    return list;
+  }, [items, selectedDate]);
+
+  const transactionDates = useMemo(() => {
+    const dates = new Set();
+    items.forEach((item) => {
+      if (item.created_at) {
+        const d = new Date(item.created_at);
+        const yyyymmdd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        dates.add(yyyymmdd);
+      }
+    });
+    return dates;
+  }, [items]);
+
+  const modifiers = useMemo(() => {
+    return {
+      hasTx: (date) => {
+        const yyyymmdd = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+        return transactionDates.has(yyyymmdd);
+      }
+    };
+  }, [transactionDates]);
+
+  const groups = useMemo(() => groupTransactions(filteredItems), [filteredItems]);
 
   const filteredGroups = useMemo(() => {
     const s = search.trim().toLowerCase();
@@ -83,8 +123,13 @@ export default function TransactionsTab() {
     });
   }, [groups, search]);
 
-  const totalBuy = items.filter((t) => t.type === "buy").reduce((a, t) => a + t.total, 0);
-  const totalSell = items.filter((t) => t.type === "sell").reduce((a, t) => a + t.total, 0);
+  const totalBuy = useMemo(() => {
+    return filteredItems.filter((t) => t.type === "buy").reduce((a, t) => a + t.total, 0);
+  }, [filteredItems]);
+
+  const totalSell = useMemo(() => {
+    return filteredItems.filter((t) => t.type === "sell").reduce((a, t) => a + t.total, 0);
+  }, [filteredItems]);
 
   return (
     <div className="space-y-6" data-testid="transactions-tab">
@@ -96,20 +141,22 @@ export default function TransactionsTab() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className={`grid grid-cols-1 ${isAdmin ? "sm:grid-cols-3" : "sm:grid-cols-2"} gap-4`}>
         <div data-testid="tx-stat-count" className="bg-card rounded-xl border border-border card-shadow p-5">
           <p className="text-sm text-muted-foreground">Total transactions</p>
           <p className="text-2xl md:text-3xl font-semibold tabular mt-1">{groups.length}</p>
-          <p className="text-xs text-muted-foreground mt-1">{items.length} line item(s)</p>
+          <p className="text-xs text-muted-foreground mt-1">{filteredItems.length} line item(s)</p>
         </div>
         <div data-testid="tx-stat-buy" className="bg-card rounded-xl border border-border card-shadow p-5">
           <p className="text-sm text-muted-foreground">Money spent (buys)</p>
           <p className="text-2xl md:text-3xl font-semibold tabular mt-1 text-primary">{formatPeso(totalBuy)}</p>
         </div>
-        <div data-testid="tx-stat-sell" className="bg-card rounded-xl border border-border card-shadow p-5">
-          <p className="text-sm text-muted-foreground">Revenue (sells)</p>
-          <p className="text-2xl md:text-3xl font-semibold tabular mt-1">{formatPeso(totalSell)}</p>
-        </div>
+        {isAdmin && (
+          <div data-testid="tx-stat-sell" className="bg-card rounded-xl border border-border card-shadow p-5">
+            <p className="text-sm text-muted-foreground">Revenue (sells)</p>
+            <p className="text-2xl md:text-3xl font-semibold tabular mt-1">{formatPeso(totalSell)}</p>
+          </div>
+        )}
       </div>
 
       {/* Filters */}
@@ -124,19 +171,61 @@ export default function TransactionsTab() {
             className="h-12 pl-11 text-base"
           />
         </div>
-        <div className="inline-flex border border-border rounded-lg overflow-hidden bg-card">
-          {["all", "buy", "sell"].map((f) => (
-            <button
-              key={f}
-              data-testid={`tx-filter-${f}`}
-              onClick={() => setFilter(f)}
-              className={`px-4 h-12 text-sm font-medium capitalize transition-colors ${
-                filter === f ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
-              }`}
-            >
-              {f}
-            </button>
-          ))}
+        <div className="flex gap-2 shrink-0">
+          {isAdmin && (
+            <div className="inline-flex border border-border rounded-lg overflow-hidden bg-card">
+              {["all", "buy", "sell"].map((f) => (
+                <button
+                  key={f}
+                  data-testid={`tx-filter-${f}`}
+                  onClick={() => setFilter(f)}
+                  className={`px-4 h-12 text-sm font-medium capitalize transition-colors ${
+                    filter === f ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          )}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                data-testid="tx-date-picker-btn"
+                variant="outline"
+                className={`h-12 gap-2 border-border font-medium bg-card data-[state=open]:opacity-70 transition-opacity ${selectedDate ? "border-primary text-primary" : "text-muted-foreground"}`}
+              >
+                <Calendar size={18} weight="bold" />
+                {selectedDate
+                  ? selectedDate.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })
+                  : "Filter by date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 bg-card/90 backdrop-blur border-border opacity-90" align="end">
+              <CalendarComponent
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                modifiers={modifiers}
+                modifiersClassNames={{
+                  hasTx: "relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1.5 after:h-1.5 after:rounded-full after:bg-primary"
+                }}
+                initialFocus
+              />
+              {selectedDate && (
+                <div className="p-2 border-t border-border flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedDate(null)}
+                    className="text-xs h-8"
+                  >
+                    Clear selection
+                  </Button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
@@ -150,7 +239,9 @@ export default function TransactionsTab() {
               <Receipt size={28} className="text-muted-foreground" />
             </div>
             <p className="font-semibold mb-1">No transactions yet</p>
-            <p className="text-sm text-muted-foreground">Tap Buy or Sell to record one.</p>
+            <p className="text-sm text-muted-foreground">
+              {isAdmin ? "Tap Buy or Sell to record one." : "Tap Buy to record one."}
+            </p>
           </div>
         ) : (
           <ul className="divide-y divide-border" data-testid="tx-list">

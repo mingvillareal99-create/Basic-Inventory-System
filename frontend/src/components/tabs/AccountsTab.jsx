@@ -68,7 +68,7 @@ export default function AccountsTab({ currentUser }) {
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Accounts</h1>
           <p className="text-sm md:text-base text-muted-foreground mt-1 max-w-xl">
-            Add and manage who can sign in. Personnel can buy and sell. Admins can do anything.
+            Add and manage who can sign in. Personnel can buy items. Admins can do anything.
           </p>
         </div>
         <Button

@@ -98,7 +98,7 @@ export default function AccountDialog({ open, onOpenChange, user, onSave }) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="personnel" data-testid="role-option-personnel">
-                  Personnel (can buy and sell)
+                  Personnel (can buy items)
                 </SelectItem>
                 <SelectItem value="admin" data-testid="role-option-admin">
                   Admin (full access)

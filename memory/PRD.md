@@ -12,11 +12,11 @@ Build a "Very Simple Inventory System" — lightweight, functional prototype. Tr
 
 ## Roles
 - **admin** — CRUD products, CRUD users, BUY & SELL
-- **personnel** — read products, BUY & SELL only
+- **personnel** — read products, BUY only
 
 ## User Personas
 - Owner/Admin — manages staff & catalog
-- Store clerk (personnel) — handles daily buy/sell transactions on tablet/phone
+- Store clerk (personnel) — handles daily buy transactions on tablet/phone
 
 ## Implemented
 ### Iteration 1 (2026-02)

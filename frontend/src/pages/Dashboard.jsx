@@ -144,14 +144,16 @@ export default function Dashboard() {
             <ShoppingCart size={20} weight="bold" />
             Buy
           </button>
-          <button
-            data-testid="mobile-sell-btn"
-            onClick={() => setTxDialog({ open: true, type: "sell", product: null })}
-            className="flex-1 h-14 inline-flex items-center justify-center gap-2 bg-foreground text-background hover:bg-foreground/90 font-semibold rounded-xl card-shadow transition-colors"
-          >
-            <ShoppingBag size={20} weight="bold" />
-            Sell
-          </button>
+          {isAdmin && (
+            <button
+              data-testid="mobile-sell-btn"
+              onClick={() => setTxDialog({ open: true, type: "sell", product: null })}
+              className="flex-1 h-14 inline-flex items-center justify-center gap-2 bg-foreground text-background hover:bg-foreground/90 font-semibold rounded-xl card-shadow transition-colors"
+            >
+              <ShoppingBag size={20} weight="bold" />
+              Sell
+            </button>
+          )}
         </div>
       </div>
 
