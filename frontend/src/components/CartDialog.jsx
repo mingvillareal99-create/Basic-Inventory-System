@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +31,53 @@ export default function CartDialog({
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [newlyAddedKey, setNewlyAddedKey] = useState(null);
+
+  useEffect(() => {
+    if (!open) {
+      setNewlyAddedKey(null);
+    }
+  }, [open]);
+
+  const isDirty = () => {
+    if (lines.length > 1) return true;
+    if (lines.length === 1) {
+      const l = lines[0];
+      if (l.product_id) {
+        if (defaultProduct) {
+          if (
+            l.product_id !== defaultProduct.id ||
+            l.quantity !== 1 ||
+            l.unit_price !== (Number(defaultProduct.price) || 0)
+          ) {
+            return true;
+          }
+        } else {
+          return true;
+        }
+      } else {
+        if (l.quantity !== 1 || l.unit_price !== 0) return true;
+      }
+    }
+    if (note.trim().length > 0) return true;
+    return false;
+  };
+
+  const handleCloseAttempt = () => {
+    if (isDirty()) {
+      const confirmClose = window.confirm("Are you sure you want to cancel? Your changes will be lost.");
+      if (!confirmClose) return;
+    }
+    onOpenChange(false);
+  };
+
+  const handleOpenChange = (val) => {
+    if (val === false) {
+      handleCloseAttempt();
+    } else {
+      onOpenChange(val);
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -73,7 +121,19 @@ export default function CartDialog({
     );
   };
 
-  const addLine = () => setLines((prev) => [...prev, newLine()]);
+  const addLine = () => {
+    if (lines.length > 0 && !lines[lines.length - 1].product_id) {
+      toast.warning("Please select a product for the empty slot first.");
+      const lastKey = lines[lines.length - 1].key;
+      setNewlyAddedKey(null);
+      setTimeout(() => setNewlyAddedKey(lastKey), 10);
+      return;
+    }
+    const item = newLine();
+    setLines((prev) => [...prev, item]);
+    setNewlyAddedKey(item.key);
+  };
+
   const removeLine = (key) =>
     setLines((prev) => (prev.length === 1 ? prev : prev.filter((l) => l.key !== key)));
 
@@ -132,7 +192,7 @@ export default function CartDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent data-testid="cart-dialog" className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl flex items-center gap-2">
@@ -154,7 +214,10 @@ export default function CartDialog({
                 <div
                   key={l.key}
                   data-testid={`cart-line-${idx}`}
-                  className="border border-border bg-muted/30 rounded-xl p-4 space-y-3"
+                  className={cn(
+                    "border border-border bg-muted/30 rounded-xl p-4 space-y-3 transition-all",
+                    newlyAddedKey === l.key && "animate-glow-green"
+                  )}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium text-muted-foreground">
@@ -285,7 +348,7 @@ export default function CartDialog({
           )}
 
           <DialogFooter className="pt-2 gap-2">
-            <Button type="button" variant="outline" data-testid="cart-cancel-btn" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" data-testid="cart-cancel-btn" onClick={handleCloseAttempt}>
               Cancel
             </Button>
             <Button
