@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,10 +36,12 @@ export default function CartDialog({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [newlyAddedKey, setNewlyAddedKey] = useState(null);
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setNewlyAddedKey(null);
+      setShowConfirmClose(false);
     }
   }, [open]);
 
@@ -65,10 +71,10 @@ export default function CartDialog({
 
   const handleCloseAttempt = () => {
     if (isDirty()) {
-      const confirmClose = window.confirm("Are you sure you want to cancel? Your changes will be lost.");
-      if (!confirmClose) return;
+      setShowConfirmClose(true);
+    } else {
+      onOpenChange(false);
     }
-    onOpenChange(false);
   };
 
   const handleOpenChange = (val) => {
@@ -192,8 +198,9 @@ export default function CartDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent data-testid="cart-dialog" className="max-w-2xl">
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent data-testid="cart-dialog" className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-xl flex items-center gap-2">
             {isBuy ? <ShoppingCart size={22} weight="fill" className="text-primary" /> : <ShoppingBag size={22} weight="fill" />}
@@ -363,5 +370,32 @@ export default function CartDialog({
         </form>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={showConfirmClose} onOpenChange={setShowConfirmClose}>
+      <AlertDialogContent data-testid="cart-confirm-close-dialog">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to cancel? Your changes will be lost.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel data-testid="cart-confirm-close-cancel-btn">
+            Keep editing
+          </AlertDialogCancel>
+          <AlertDialogAction
+            data-testid="cart-confirm-close-confirm-btn"
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => {
+              setShowConfirmClose(false);
+              onOpenChange(false);
+            }}
+          >
+            Discard changes
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </>
   );
 }
