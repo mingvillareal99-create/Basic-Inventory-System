@@ -16,6 +16,8 @@ from fastapi import FastAPI, APIRouter, HTTPException, Request, Response, Depend
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
+import pymongo.errors
+
 
 
 # ----------------- Config -----------------
@@ -389,7 +391,7 @@ async def stats(_user: dict = Depends(get_current_user)):
 
 
 @products_router.post("", status_code=201)
-async def create_product(payload: ProductIn, _admin: dict = Depends(require_admin)):
+async def create_product(payload: ProductIn, _user: dict = Depends(get_current_user)):
     now = now_iso()
     doc = {
         "name": payload.name.strip(),
@@ -399,7 +401,13 @@ async def create_product(payload: ProductIn, _admin: dict = Depends(require_admi
         "created_at": now,
         "updated_at": now,
     }
-    result = await db.products.insert_one(doc)
+    try:
+        result = await db.products.insert_one(doc)
+    except pymongo.errors.DuplicateKeyError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Product with name '{payload.name.strip()}' already exists in inventory."
+        )
     doc["_id"] = result.inserted_id
     return serialize_product(doc)
 
@@ -618,7 +626,28 @@ async def startup():
 
     await db.users.create_index("username", unique=True)
     await db.login_attempts.create_index("identifier")
-    await db.products.create_index("name")
+    
+    # Safely drop legacy non-unique index if it exists
+    try:
+        await db.products.drop_index("name_1")
+    except Exception:
+        pass
+
+    try:
+        # Create case-insensitive unique index on name
+        await db.products.create_index(
+            "name",
+            unique=True,
+            collation={"locale": "en", "strength": 2}
+        )
+        logger.info("Created unique case-insensitive index on products name")
+    except Exception as e:
+        logger.warning(
+            "Could not create unique index on products name (possible existing duplicates): %s. Re-creating non-unique index.",
+            e
+        )
+        await db.products.create_index("name")
+
     await db.products.create_index("category")
     await db.transactions.create_index("created_at")
     await db.transactions.create_index("product_id")

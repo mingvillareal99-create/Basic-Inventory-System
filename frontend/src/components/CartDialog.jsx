@@ -28,7 +28,7 @@ const newLine = () => ({
 });
 
 export default function CartDialog({
-  open, onOpenChange, type = "buy", defaultProduct = null, products = [], onCompleted,
+  open, onOpenChange, type = "buy", defaultProduct = null, products = [], onCompleted, onProductCreated,
 }) {
   const isBuy = type === "buy";
   const [lines, setLines] = useState([newLine()]);
@@ -38,10 +38,87 @@ export default function CartDialog({
   const [newlyAddedKey, setNewlyAddedKey] = useState(null);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
 
+  const [showQuickCreateDialog, setShowQuickCreateDialog] = useState(false);
+  const [quickCreateLineKey, setQuickCreateLineKey] = useState(null);
+  const [quickName, setQuickName] = useState("");
+  const [quickCategory, setQuickCategory] = useState("");
+  const [quickSubmitting, setQuickSubmitting] = useState(false);
+  const [quickCreateError, setQuickCreateError] = useState("");
+
+  const normalizedQuickName = useMemo(() => {
+    return quickName.trim().toLowerCase().replace(/\s+/g, " ");
+  }, [quickName]);
+
+  const exactDuplicateProduct = useMemo(() => {
+    if (!normalizedQuickName) return null;
+    return products.find(
+      (p) => p.name.trim().toLowerCase().replace(/\s+/g, " ") === normalizedQuickName
+    );
+  }, [normalizedQuickName, products]);
+
+  const similarDuplicateProducts = useMemo(() => {
+    if (!normalizedQuickName || exactDuplicateProduct) return [];
+    return products
+      .filter((p) => {
+        const name = p.name.trim().toLowerCase().replace(/\s+/g, " ");
+        return name.includes(normalizedQuickName) || normalizedQuickName.includes(name);
+      })
+      .slice(0, 3);
+  }, [normalizedQuickName, exactDuplicateProduct, products]);
+
+  const handleSelectExistingDuplicate = (prodId) => {
+    updateLine(quickCreateLineKey, { product_id: prodId });
+    setShowQuickCreateDialog(false);
+  };
+
+  const handleQuickCreateSubmit = async (e) => {
+    e.preventDefault();
+    if (!quickName.trim()) {
+      setQuickCreateError("Product name is required.");
+      return;
+    }
+    if (!quickCategory.trim()) {
+      setQuickCreateError("Category is required.");
+      return;
+    }
+    if (exactDuplicateProduct) {
+      setQuickCreateError("Product name already exists.");
+      return;
+    }
+
+    try {
+      setQuickSubmitting(true);
+      setQuickCreateError("");
+      const payload = {
+        name: quickName.trim(),
+        category: quickCategory.trim(),
+        quantity: 0,
+        price: 0.0,
+      };
+      const { data } = await api.post("/products", payload);
+      toast.success(`Product "${data.name}" created successfully.`);
+      await onProductCreated?.();
+      updateLine(quickCreateLineKey, { product_id: data.id });
+      setShowQuickCreateDialog(false);
+    } catch (err) {
+      setQuickCreateError(
+        formatApiErrorDetail(err.response?.data?.detail) || "Failed to create product."
+      );
+    } finally {
+      setQuickSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     if (!open) {
       setNewlyAddedKey(null);
       setShowConfirmClose(false);
+      setShowQuickCreateDialog(false);
+      setQuickCreateLineKey(null);
+      setQuickName("");
+      setQuickCategory("");
+      setQuickSubmitting(false);
+      setQuickCreateError("");
     }
   }, [open]);
 
@@ -247,12 +324,31 @@ export default function CartDialog({
                       <Label className="text-xs">Product</Label>
                       <Select
                         value={l.product_id}
-                        onValueChange={(v) => updateLine(l.key, { product_id: v })}
+                        onValueChange={(v) => {
+                          if (v === "__create_new__") {
+                            setQuickCreateLineKey(l.key);
+                            setQuickName("");
+                            setQuickCategory("");
+                            setQuickCreateError("");
+                            setShowQuickCreateDialog(true);
+                          } else {
+                            updateLine(l.key, { product_id: v });
+                          }
+                        }}
                       >
                         <SelectTrigger data-testid={`cart-product-${idx}`} className="h-11 bg-card">
                           <SelectValue placeholder="Choose product" />
                         </SelectTrigger>
                         <SelectContent>
+                          {isBuy && (
+                            <SelectItem
+                              value="__create_new__"
+                              className="font-medium text-primary hover:bg-primary-soft focus:bg-primary-soft cursor-pointer"
+                              data-testid={`cart-product-${idx}-option-create-new`}
+                            >
+                              + Add New Product...
+                            </SelectItem>
+                          )}
                           {products.length === 0 && (
                             <SelectItem value="__none__" disabled>No products available</SelectItem>
                           )}
@@ -396,6 +492,110 @@ export default function CartDialog({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <Dialog open={showQuickCreateDialog} onOpenChange={setShowQuickCreateDialog}>
+      <DialogContent className="max-w-md" data-testid="quick-create-dialog">
+        <DialogHeader>
+          <DialogTitle>Quick-Create Product</DialogTitle>
+          <DialogDescription>
+            This product will be added to the inventory catalog with 0 starting quantity.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleQuickCreateSubmit} className="space-y-4 pt-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="quick-name">Product Name</Label>
+            <Input
+              id="quick-name"
+              data-testid="quick-create-name-input"
+              value={quickName}
+              onChange={(e) => {
+                setQuickName(e.target.value);
+                setQuickCreateError("");
+              }}
+              placeholder="e.g. Screwdriver"
+              required
+            />
+            {exactDuplicateProduct && (
+              <p className="text-xs text-amber-500 font-medium mt-1">
+                ⚠️ "{exactDuplicateProduct.name}" already exists in the inventory.
+              </p>
+            )}
+            {!exactDuplicateProduct && similarDuplicateProducts.length > 0 && (
+              <div className="space-y-1.5 mt-1.5">
+                <p className="text-xs text-amber-500 font-medium">
+                  ⚠️ Did you mean one of these existing products?
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {similarDuplicateProducts.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      data-testid={`quick-create-suggest-${p.id}`}
+                      className="text-xs px-2.5 py-1 bg-muted hover:bg-muted-foreground/20 text-muted-foreground rounded-full border border-border transition-colors font-medium"
+                      onClick={() => handleSelectExistingDuplicate(p.id)}
+                    >
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="quick-category">Category</Label>
+            <Input
+              id="quick-category"
+              data-testid="quick-create-category-input"
+              value={quickCategory}
+              onChange={(e) => {
+                setQuickCategory(e.target.value);
+                setQuickCreateError("");
+              }}
+              placeholder="e.g. Tools"
+              required
+            />
+          </div>
+
+          {quickCreateError && (
+            <div data-testid="quick-create-error" className="text-xs text-destructive bg-destructive/10 border border-destructive/20 px-3 py-2 rounded-lg">
+              {quickCreateError}
+            </div>
+          )}
+
+          <DialogFooter className="pt-2 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              data-testid="quick-create-cancel-btn"
+              onClick={() => setShowQuickCreateDialog(false)}
+            >
+              Cancel
+            </Button>
+            {exactDuplicateProduct ? (
+              <Button
+                type="button"
+                data-testid="quick-create-select-existing-btn"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                onClick={() => handleSelectExistingDuplicate(exactDuplicateProduct.id)}
+              >
+                Select Existing Product
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                data-testid="quick-create-submit-btn"
+                disabled={quickSubmitting}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                {quickSubmitting ? "Creating…" : "Create Product"}
+              </Button>
+            )}
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   </>
   );
 }

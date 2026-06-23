@@ -164,6 +164,7 @@ export default function Dashboard() {
         products={products}
         onOpenChange={(o) => setTxDialog((d) => ({ ...d, open: o }))}
         onCompleted={onTransactionComplete}
+        onProductCreated={loadProducts}
       />
     </div>
   );

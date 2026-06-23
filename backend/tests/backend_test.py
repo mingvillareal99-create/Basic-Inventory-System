@@ -212,11 +212,26 @@ class TestProducts:
         assert r.status_code == 200
         assert isinstance(r.json(), list)
 
-    def test_personnel_cannot_create_product(self, personnel_session):
+    def test_personnel_can_create_product(self, personnel_session, cleanup_products):
         r = personnel_session.post(f"{API}/products", json={
-            "name": "TEST_PNG", "quantity": 1, "price": 1.0, "category": "TEST"
+            "name": f"TEST_PNG_{uuid.uuid4().hex[:6]}", "quantity": 1, "price": 1.0, "category": "TEST"
         })
-        assert r.status_code == 403
+        assert r.status_code == 201
+        cleanup_products.append(r.json()["id"])
+
+    def test_duplicate_product_rejected(self, admin_session, personnel_session, cleanup_products):
+        name = f"TEST_Duplicate_Prod_{uuid.uuid4().hex[:6]}"
+        r1 = admin_session.post(f"{API}/products", json={
+            "name": name, "quantity": 1, "price": 1.0, "category": "TEST"
+        })
+        assert r1.status_code == 201
+        cleanup_products.append(r1.json()["id"])
+
+        # Try creating duplicate name via personnel (case-insensitive check)
+        r2 = personnel_session.post(f"{API}/products", json={
+            "name": f"  {name.lower()}  ", "quantity": 1, "price": 1.0, "category": "TEST"
+        })
+        assert r2.status_code == 400
 
     def test_personnel_cannot_update_or_delete(self, personnel_session, admin_session, cleanup_products):
         r = admin_session.post(f"{API}/products", json={
