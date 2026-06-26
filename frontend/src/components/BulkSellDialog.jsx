@@ -226,7 +226,7 @@ export default function BulkSellDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent data-testid="bulk-sell-dialog" className="max-w-3xl">
+        <DialogContent data-testid="bulk-sell-dialog" className="max-w-3xl w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               <ShoppingBag size={22} weight="fill" className="text-primary" />
@@ -311,83 +311,165 @@ export default function BulkSellDialog({
                       : "No in-stock products available."}
                   </div>
                 ) : (
-                  <table className="w-full text-sm">
-                    <thead className="sticky top-0 bg-background/95 backdrop-blur border-b border-border z-10 shadow-[0_1px_0_0_rgba(0,0,0,0.1)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.1)]">
-                      <tr className="text-muted-foreground bg-muted/40 font-medium">
-                        <th className="text-left p-3 font-medium">Product</th>
-                        <th className="text-right p-3 w-[100px] font-medium">In Stock</th>
-                        <th className="text-center p-3 w-[160px] font-medium">Sell Qty</th>
-                        <th className="text-right p-3 w-[130px] font-medium">Unit Price (₱)</th>
-                        <th className="text-right p-3 w-[110px] font-medium">Total (₱)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
+                  <>
+                    {/* Desktop table view */}
+                    <div className="hidden sm:block">
+                      <table className="w-full text-sm">
+                        <thead className="sticky top-0 bg-background/95 backdrop-blur border-b border-border z-10 shadow-[0_1px_0_0_rgba(0,0,0,0.1)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.1)]">
+                          <tr className="text-muted-foreground bg-muted/40 font-medium">
+                            <th className="text-left p-3 font-medium">Product</th>
+                            <th className="text-right p-3 w-[100px] font-medium">In Stock</th>
+                            <th className="text-center p-3 w-[160px] font-medium">Sell Qty</th>
+                            <th className="text-right p-3 w-[130px] font-medium">Unit Price (₱)</th>
+                            <th className="text-right p-3 w-[110px] font-medium">Total (₱)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {filteredItems.map((item) => {
+                            const isDefault = defaultProduct && item.product_id === defaultProduct.id;
+                            const lineTotal = (parseInt(item.quantity, 10) || 0) * (parseFloat(item.unit_price) || 0);
+                            const isLowStock = item.available_stock < 5;
+
+                            return (
+                              <tr
+                                key={item.product_id}
+                                data-testid={`sell-row-${item.product_id}`}
+                                className={cn(
+                                  "hover:bg-muted/20 transition-colors",
+                                  isDefault && "bg-primary-soft/30 hover:bg-primary-soft/40"
+                                )}
+                              >
+                                <td className="p-3">
+                                  <div className="min-w-0">
+                                    <p className="font-medium truncate">{item.name}</p>
+                                    <p className="text-xs text-muted-foreground">{item.category}</p>
+                                  </div>
+                                </td>
+                                <td className="p-3 text-right tabular">
+                                  <span className={cn(isLowStock ? "text-warning font-medium" : "text-muted-foreground")}>
+                                    {item.available_stock}
+                                  </span>
+                                </td>
+                                <td className="p-3">
+                                  <div className="flex items-center gap-1.5 justify-center">
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      max={item.available_stock}
+                                      value={item.quantity}
+                                      onChange={(e) => updateItem(item.product_id, { quantity: e.target.value })}
+                                      className="h-9 w-20 text-center tabular bg-card"
+                                      data-testid={`sell-qty-${item.product_id}`}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => updateItem(item.product_id, { quantity: item.available_stock })}
+                                      className="h-9 px-2 text-xs border border-border hover:bg-muted rounded-md font-medium transition-colors shrink-0"
+                                      title="Sell maximum available"
+                                      data-testid={`sell-max-${item.product_id}`}
+                                    >
+                                      Max
+                                    </button>
+                                  </div>
+                                </td>
+                                <td className="p-3 text-right">
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={item.unit_price}
+                                    onChange={(e) => updateItem(item.product_id, { unit_price: e.target.value })}
+                                    className="h-9 w-24 text-right tabular bg-card ml-auto"
+                                    data-testid={`sell-price-${item.product_id}`}
+                                  />
+                                </td>
+                                <td className="p-3 text-right tabular font-medium">
+                                  {formatPeso(lineTotal)}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile cards view */}
+                    <div className="block sm:hidden divide-y divide-border">
                       {filteredItems.map((item) => {
                         const isDefault = defaultProduct && item.product_id === defaultProduct.id;
                         const lineTotal = (parseInt(item.quantity, 10) || 0) * (parseFloat(item.unit_price) || 0);
                         const isLowStock = item.available_stock < 5;
 
                         return (
-                          <tr
+                          <div
                             key={item.product_id}
-                            data-testid={`sell-row-${item.product_id}`}
+                            data-testid={`sell-card-${item.product_id}`}
                             className={cn(
-                              "hover:bg-muted/20 transition-colors",
-                              isDefault && "bg-primary-soft/30 hover:bg-primary-soft/40"
+                              "p-3.5 space-y-3 transition-colors",
+                              isDefault && "bg-primary-soft/10"
                             )}
                           >
-                            <td className="p-3">
-                              <div className="min-w-0">
-                                <p className="font-medium truncate">{item.name}</p>
+                            <div className="flex justify-between items-start gap-2">
+                              <div className="min-w-0 flex-1">
+                                <p className="font-semibold text-sm truncate">{item.name}</p>
                                 <p className="text-xs text-muted-foreground">{item.category}</p>
                               </div>
-                            </td>
-                            <td className="p-3 text-right tabular">
-                              <span className={cn(isLowStock ? "text-warning font-medium" : "text-muted-foreground")}>
-                                {item.available_stock}
+                              <span className={cn(
+                                "text-xs font-medium px-2 py-0.5 rounded border",
+                                isLowStock 
+                                  ? "text-warning bg-warning/5 border-warning/20" 
+                                  : "text-muted-foreground bg-muted border-border"
+                              )}>
+                                {item.available_stock} in stock
                               </span>
-                            </td>
-                            <td className="p-3">
-                              <div className="flex items-center gap-1.5 justify-center">
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 items-end">
+                              <div className="space-y-1">
+                                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Sell Qty</Label>
+                                <div className="flex items-center gap-1">
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    max={item.available_stock}
+                                    value={item.quantity}
+                                    onChange={(e) => updateItem(item.product_id, { quantity: e.target.value })}
+                                    className="h-9 text-center tabular bg-card"
+                                    data-testid={`sell-qty-mobile-${item.product_id}`}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => updateItem(item.product_id, { quantity: item.available_stock })}
+                                    className="h-9 px-2 text-xs border border-border hover:bg-muted rounded-md font-semibold transition-colors shrink-0"
+                                    data-testid={`sell-max-mobile-${item.product_id}`}
+                                  >
+                                    Max
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Unit Price (₱)</Label>
                                 <Input
                                   type="number"
                                   min="0"
-                                  max={item.available_stock}
-                                  value={item.quantity}
-                                  onChange={(e) => updateItem(item.product_id, { quantity: e.target.value })}
-                                  className="h-9 w-20 text-center tabular bg-card"
-                                  data-testid={`sell-qty-${item.product_id}`}
+                                  step="0.01"
+                                  value={item.unit_price}
+                                  onChange={(e) => updateItem(item.product_id, { unit_price: e.target.value })}
+                                  className="h-9 text-right tabular bg-card w-full"
+                                  data-testid={`sell-price-mobile-${item.product_id}`}
                                 />
-                                <button
-                                  type="button"
-                                  onClick={() => updateItem(item.product_id, { quantity: item.available_stock })}
-                                  className="h-9 px-2 text-xs border border-border hover:bg-muted rounded-md font-medium transition-colors shrink-0"
-                                  title="Sell maximum available"
-                                  data-testid={`sell-max-${item.product_id}`}
-                                >
-                                  Max
-                                </button>
                               </div>
-                            </td>
-                            <td className="p-3 text-right">
-                              <Input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={item.unit_price}
-                                onChange={(e) => updateItem(item.product_id, { unit_price: e.target.value })}
-                                className="h-9 w-24 text-right tabular bg-card ml-auto"
-                                data-testid={`sell-price-${item.product_id}`}
-                              />
-                            </td>
-                            <td className="p-3 text-right tabular font-medium">
-                              {formatPeso(lineTotal)}
-                            </td>
-                          </tr>
+                            </div>
+
+                            <div className="flex justify-between items-center text-xs pt-1.5 border-t border-border/40">
+                              <span className="text-muted-foreground">Line Total</span>
+                              <span className="font-semibold tabular text-foreground">{formatPeso(lineTotal)}</span>
+                            </div>
+                          </div>
                         );
                       })}
-                    </tbody>
-                  </table>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
