@@ -290,16 +290,14 @@ export default function InventoryTab({ products, loading, isAdmin, reload, onBuy
           >
             <ShoppingCart size={16} weight="bold" /> Buy
           </Button>
-          {isAdmin && (
-            <Button
-              data-testid="desktop-sell-btn"
-              onClick={() => onSell?.(null)}
-              variant="outline"
-              className="h-11 gap-2"
-            >
-              <ShoppingBag size={16} weight="bold" /> Sell
-            </Button>
-          )}
+          <Button
+            data-testid="desktop-sell-btn"
+            onClick={() => onSell?.(null)}
+            variant="outline"
+            className="h-11 gap-2"
+          >
+            <ShoppingBag size={16} weight="bold" /> Sell
+          </Button>
           {isAdmin && (
             <Button
               data-testid="add-product-btn"

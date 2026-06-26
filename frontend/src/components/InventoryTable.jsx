@@ -65,11 +65,9 @@ export default function InventoryTable({
               <th className="text-right text-xs uppercase tracking-wide font-semibold text-muted-foreground px-5 py-3">
                 Unit price
               </th>
-              {isAdmin && (
-                <th className="text-right text-xs uppercase tracking-wide font-semibold text-muted-foreground px-5 py-3 min-w-[180px] md:min-w-[240px]">
-                  Actions
-                </th>
-              )}
+              <th className="text-right text-xs uppercase tracking-wide font-semibold text-muted-foreground px-5 py-3 min-w-[180px] md:min-w-[240px]">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -115,7 +113,6 @@ export default function InventoryTable({
                   <td className="px-5 py-4 text-right tabular font-medium">
                     {formatPeso(p.price)}
                   </td>
-                  {isAdmin && (
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
@@ -137,25 +134,28 @@ export default function InventoryTable({
                           <ShoppingBag size={14} weight="bold" />
                           <span className="hidden md:inline">Sell</span>
                         </button>
-                        <button
-                          data-testid={`edit-${p.id}`}
-                          onClick={() => onEdit?.(p)}
-                          className="h-10 w-10 inline-flex items-center justify-center border border-border hover:bg-muted rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <PencilSimple size={16} />
-                        </button>
-                        <button
-                          data-testid={`delete-${p.id}`}
-                          onClick={() => setConfirmId(p.id)}
-                          className="h-10 w-10 inline-flex items-center justify-center border border-border text-muted-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive rounded-lg transition-colors"
-                          title="Delete"
-                        >
-                          <Trash size={16} />
-                        </button>
+                        {isAdmin && (
+                          <>
+                            <button
+                              data-testid={`edit-${p.id}`}
+                              onClick={() => onEdit?.(p)}
+                              className="h-10 w-10 inline-flex items-center justify-center border border-border hover:bg-muted rounded-lg transition-colors"
+                              title="Edit"
+                            >
+                              <PencilSimple size={16} />
+                            </button>
+                            <button
+                              data-testid={`delete-${p.id}`}
+                              onClick={() => setConfirmId(p.id)}
+                              className="h-10 w-10 inline-flex items-center justify-center border border-border text-muted-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive rounded-lg transition-colors"
+                              title="Delete"
+                            >
+                              <Trash size={16} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
-                  )}
                 </tr>
               );
             })}
@@ -199,7 +199,6 @@ export default function InventoryTable({
 
               <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border">
                 <p className="font-semibold tabular">{formatPeso(p.price)}</p>
-                {isAdmin && (
                   <div className="flex flex-wrap items-center gap-1.5">
                     <button
                       data-testid={`buy-${p.id}`}
@@ -216,22 +215,25 @@ export default function InventoryTable({
                     >
                       Sell
                     </button>
-                    <button
-                      data-testid={`edit-${p.id}`}
-                      onClick={() => onEdit?.(p)}
-                      className="h-10 w-10 inline-flex items-center justify-center border border-border hover:bg-muted rounded-lg"
-                    >
-                      <PencilSimple size={16} />
-                    </button>
-                    <button
-                      data-testid={`delete-${p.id}`}
-                      onClick={() => setConfirmId(p.id)}
-                      className="h-10 w-10 inline-flex items-center justify-center border border-border text-muted-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive rounded-lg"
-                    >
-                      <Trash size={16} />
-                    </button>
+                    {isAdmin && (
+                      <>
+                        <button
+                          data-testid={`edit-${p.id}`}
+                          onClick={() => onEdit?.(p)}
+                          className="h-10 w-10 inline-flex items-center justify-center border border-border hover:bg-muted rounded-lg"
+                        >
+                          <PencilSimple size={16} />
+                        </button>
+                        <button
+                          data-testid={`delete-${p.id}`}
+                          onClick={() => setConfirmId(p.id)}
+                          className="h-10 w-10 inline-flex items-center justify-center border border-border text-muted-foreground hover:bg-destructive hover:text-destructive-foreground hover:border-destructive rounded-lg"
+                        >
+                          <Trash size={16} />
+                        </button>
+                      </>
+                    )}
                   </div>
-                )}
               </div>
             </div>
           );

@@ -11,6 +11,7 @@ import InventoryTab from "@/components/tabs/InventoryTab";
 import TransactionsTab from "@/components/tabs/TransactionsTab";
 import AccountsTab from "@/components/tabs/AccountsTab";
 import CartDialog from "@/components/CartDialog";
+import BulkSellDialog from "@/components/BulkSellDialog";
 
 const TABS = [
   { id: "inventory", label: "Inventory", icon: Storefront, roles: ["admin", "personnel"] },
@@ -144,28 +145,36 @@ export default function Dashboard() {
             <ShoppingCart size={20} weight="bold" />
             Buy
           </button>
-          {isAdmin && (
-            <button
-              data-testid="mobile-sell-btn"
-              onClick={() => setTxDialog({ open: true, type: "sell", product: null })}
-              className="flex-1 h-14 inline-flex items-center justify-center gap-2 bg-foreground text-background hover:bg-foreground/90 font-semibold rounded-xl card-shadow transition-colors"
-            >
-              <ShoppingBag size={20} weight="bold" />
-              Sell
-            </button>
-          )}
+          <button
+            data-testid="mobile-sell-btn"
+            onClick={() => setTxDialog({ open: true, type: "sell", product: null })}
+            className="flex-1 h-14 inline-flex items-center justify-center gap-2 bg-foreground text-background hover:bg-foreground/90 font-semibold rounded-xl card-shadow transition-colors"
+          >
+            <ShoppingBag size={20} weight="bold" />
+            Sell
+          </button>
         </div>
       </div>
 
-      <CartDialog
-        open={txDialog.open}
-        type={txDialog.type}
-        defaultProduct={txDialog.product}
-        products={products}
-        onOpenChange={(o) => setTxDialog((d) => ({ ...d, open: o }))}
-        onCompleted={onTransactionComplete}
-        onProductCreated={loadProducts}
-      />
+      {txDialog.type === "buy" ? (
+        <CartDialog
+          open={txDialog.open}
+          type="buy"
+          defaultProduct={txDialog.product}
+          products={products}
+          onOpenChange={(o) => setTxDialog((d) => ({ ...d, open: o }))}
+          onCompleted={onTransactionComplete}
+          onProductCreated={loadProducts}
+        />
+      ) : (
+        <BulkSellDialog
+          open={txDialog.open}
+          defaultProduct={txDialog.product}
+          products={products}
+          onOpenChange={(o) => setTxDialog((d) => ({ ...d, open: o }))}
+          onCompleted={onTransactionComplete}
+        />
+      )}
     </div>
   );
 }
