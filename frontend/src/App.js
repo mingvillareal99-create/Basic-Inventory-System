@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
+import { Analytics } from "@vercel/analytics/react";
 
 function Loading() {
   return (
@@ -59,6 +60,7 @@ function App() {
           <AppRoutes />
         </BrowserRouter>
       </AuthProvider>
+      <Analytics />
     </ThemeProvider>
   );
 }
