@@ -31,14 +31,15 @@ export default function BulkSellDialog({
   const [error, setError] = useState("");
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
 
-  // Initialize worksheet when dialog opens
   useEffect(() => {
     if (open) {
       setError("");
       setNote("");
       setSearch("");
       setShowSelectedOnly(false);
+      setShowPreviewDialog(false);
 
       // Filter to only products in stock
       const inStockProducts = products.filter((p) => p.quantity > 0);
@@ -179,8 +180,8 @@ export default function BulkSellDialog({
     }
   };
 
-  const submit = async (e) => {
-    e.preventDefault();
+  const handleOpenPreview = (e) => {
+    e?.preventDefault();
     if (activeItems.length === 0) {
       setError("Please specify a quantity greater than 0 for at least one item.");
       return;
@@ -199,6 +200,17 @@ export default function BulkSellDialog({
       }
     }
 
+    setError("");
+    setShowPreviewDialog(true);
+  };
+
+  const handleFinalSubmit = async (e) => {
+    e?.preventDefault();
+    if (activeItems.length === 0) {
+      setError("Please specify a quantity greater than 0 for at least one item.");
+      return;
+    }
+
     const payloadItems = activeItems.map((item) => ({
       product_id: item.product_id,
       quantity: parseInt(item.quantity, 10),
@@ -215,6 +227,7 @@ export default function BulkSellDialog({
       });
       toast.success(`Successfully bulk sold ${totalUnits} units of ${payloadItems.length} product(s).`);
       onCompleted?.(data);
+      setShowPreviewDialog(false);
       onOpenChange(false);
     } catch (err) {
       setError(formatApiErrorDetail(err.response?.data?.detail) || "Failed to process sale.");
@@ -237,7 +250,7 @@ export default function BulkSellDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={submit} className="space-y-4 pt-2">
+          <form onSubmit={handleOpenPreview} className="space-y-4 pt-2">
             {/* Search and Quick Filters */}
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
@@ -266,16 +279,13 @@ export default function BulkSellDialog({
               <div className="flex gap-2 shrink-0">
                 <Button
                   type="button"
-                  variant={showSelectedOnly ? "secondary" : "outline"}
-                  onClick={() => setShowSelectedOnly(!showSelectedOnly)}
-                  className={cn(
-                    "h-10 text-xs px-3 gap-1.5 transition-all font-semibold",
-                    showSelectedOnly && "bg-primary-soft text-primary border-primary/20 hover:bg-primary-soft/80"
-                  )}
+                  variant="outline"
+                  onClick={handleOpenPreview}
+                  className="h-10 text-xs px-3 gap-1.5 transition-all font-semibold"
                   data-testid="sell-toggle-preview-btn"
                 >
-                  <Eye size={14} weight={showSelectedOnly ? "fill" : "bold"} />
-                  Selected Only ({activeItems.length})
+                  <Eye size={14} weight="bold" />
+                  Preview Selected ({activeItems.length})
                 </Button>
                 <Button
                   type="button"
@@ -525,10 +535,141 @@ export default function BulkSellDialog({
                 className="bg-primary hover:bg-primary/90 min-w-[150px]"
                 data-testid="sell-submit-btn"
               >
-                {submitting ? "Processing..." : `Confirm sale · ${formatPeso(grandTotal)}`}
+                Confirm sale · {formatPeso(grandTotal)}
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog */}
+      <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
+        <DialogContent data-testid="sell-preview-dialog" className="max-w-2xl w-[95vw] sm:w-full">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <ShoppingBag size={22} weight="fill" className="text-primary" />
+              Confirm Bulk Sale
+            </DialogTitle>
+            <DialogDescription>
+              Please review the items and prices below before completing the bulk sale.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Table of selected items */}
+          <div className="border border-border rounded-xl bg-muted/10 overflow-hidden my-2">
+            <div className="max-h-[40vh] overflow-y-auto" data-testid="sell-preview-lines">
+              {/* Desktop view */}
+              <div className="hidden sm:block">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-background/95 backdrop-blur border-b border-border z-10 shadow-[0_1px_0_0_rgba(0,0,0,0.1)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.1)]">
+                    <tr className="text-muted-foreground bg-muted/40 font-medium">
+                      <th className="text-left p-3 font-medium">Product</th>
+                      <th className="text-right p-3 w-[100px] font-medium">Sell Qty</th>
+                      <th className="text-right p-3 w-[130px] font-medium">Unit Price (₱)</th>
+                      <th className="text-right p-3 w-[120px] font-medium">Total (₱)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {activeItems.map((item) => {
+                      const lineTotal = (parseInt(item.quantity, 10) || 0) * (parseFloat(item.unit_price) || 0);
+                      return (
+                        <tr key={item.product_id} data-testid={`sell-preview-row-${item.product_id}`} className="hover:bg-muted/20 transition-colors">
+                          <td className="p-3">
+                            <div className="min-w-0">
+                              <p className="font-medium truncate">{item.name}</p>
+                              <p className="text-xs text-muted-foreground">{item.category}</p>
+                            </div>
+                          </td>
+                          <td className="p-3 text-right tabular">{item.quantity}</td>
+                          <td className="p-3 text-right tabular">{formatPeso(item.unit_price)}</td>
+                          <td className="p-3 text-right tabular font-medium">{formatPeso(lineTotal)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile view */}
+              <div className="block sm:hidden divide-y divide-border">
+                {activeItems.map((item) => {
+                  const lineTotal = (parseInt(item.quantity, 10) || 0) * (parseFloat(item.unit_price) || 0);
+                  return (
+                    <div key={item.product_id} data-testid={`sell-preview-card-${item.product_id}`} className="p-3.5 space-y-2">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-sm truncate">{item.name}</p>
+                          <p className="text-xs text-muted-foreground">{item.category}</p>
+                        </div>
+                        <span className="text-xs font-semibold tabular bg-muted px-2 py-0.5 rounded border border-border">
+                          {item.quantity} units
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-muted-foreground">Price</span>
+                        <span className="tabular">{formatPeso(item.unit_price)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs pt-1.5 border-t border-border/40">
+                        <span className="text-muted-foreground">Line Total</span>
+                        <span className="font-semibold tabular text-foreground">{formatPeso(lineTotal)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Optional Note Display */}
+          {note.trim() && (
+            <div className="space-y-1 my-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Note</span>
+              <p className="text-sm p-3 bg-muted/30 rounded-lg border border-border italic text-foreground" data-testid="sell-preview-note">
+                {note}
+              </p>
+            </div>
+          )}
+
+          {/* Total display summary */}
+          <div className="flex items-center justify-between bg-primary-soft rounded-xl px-4 py-3 border border-primary/20 my-2">
+            <div>
+              <p className="text-sm text-muted-foreground">Checkout Total</p>
+              <p className="text-xs text-muted-foreground">
+                {activeItems.length} product(s) · {totalUnits} unit(s)
+              </p>
+            </div>
+            <span className="tabular text-2xl font-semibold text-primary" data-testid="sell-preview-grand-total">
+              {formatPeso(grandTotal)}
+            </span>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 px-3 py-2 rounded-lg my-2">
+              {error}
+            </div>
+          )}
+
+          <DialogFooter className="pt-4 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowPreviewDialog(false)}
+              disabled={submitting}
+              data-testid="sell-preview-back-btn"
+            >
+              Back to Edit
+            </Button>
+            <Button
+              type="button"
+              onClick={handleFinalSubmit}
+              disabled={submitting}
+              className="bg-primary hover:bg-primary/90 min-w-[150px]"
+              data-testid="sell-preview-submit-btn"
+            >
+              {submitting ? "Processing..." : `Confirm & Submit · ${formatPeso(grandTotal)}`}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
